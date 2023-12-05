@@ -1,0 +1,35 @@
+wandb_version: 1
+
+Architecture:
+  desc: null
+  value: Graph Attention Network
+Dataset:
+  desc: null
+  value: TDC Dataset TWOSIDES
+_wandb:
+  desc: null
+  value:
+    python_version: 3.11.4
+    cli_version: 0.16.0
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1701810207.474151
+    t:
+      1:
+      - 1
+      - 55
+      - 77
+      2:
+      - 1
+      - 55
+      - 77
+      3:
+      - 16
+      - 23
+      4: 3.11.4
+      5: 0.16.0
+      8:
+      - 4
+      - 5
+      13: darwin-arm64

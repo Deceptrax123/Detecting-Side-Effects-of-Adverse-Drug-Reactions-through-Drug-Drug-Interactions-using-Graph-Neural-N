@@ -1,0 +1,37 @@
+{
+    "os": "macOS-14.1.2-arm64-arm-64bit",
+    "python": "3.11.4",
+    "heartbeatAt": "2023-12-05T21:03:28.409832",
+    "startedAt": "2023-12-05T21:03:27.464991",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/Users/smudge/Desktop/Code/research/medical/drug-interaction-model/gat/train.py",
+    "codePathLocal": "gat/train.py",
+    "codePath": "gat/train.py",
+    "git": {
+        "remote": "git@github.com:Deceptrax123/Drug-Interaction-Using-GNNs.git",
+        "commit": "d50e5ff20ef73f859d6e6165f9bc8463d2226699"
+    },
+    "email": "srinitishsri@gmail.com",
+    "root": "/Users/smudge/Desktop/Code/research/medical/drug-interaction-model",
+    "host": "Srinitishs-MacBook-Pro.local",
+    "username": "smudge",
+    "executable": "/Users/smudge/Desktop/Code/research/medical/drug-interaction-model/.venv/bin/python3",
+    "cpu_count": 8,
+    "cpu_count_logical": 8,
+    "disk": {
+        "/": {
+            "total": 228.27386474609375,
+            "used": 9.221305847167969
+        }
+    },
+    "gpuapple": {
+        "type": "arm",
+        "vendor": "Apple"
+    },
+    "memory": {
+        "total": 8.0
+    }
+}
