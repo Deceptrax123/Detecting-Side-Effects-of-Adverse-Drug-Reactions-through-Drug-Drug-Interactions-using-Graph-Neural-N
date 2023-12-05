@@ -1,6 +1,8 @@
 from torch_geometric.loader import DataLoader
+from torch_geometric.nn import summary
 from Dataset.Molecule_dataset import MolecularGraphDataset
 import torch
+from model import GATModel
 from torch.utils.data import ConcatDataset
 import torch.multiprocessing as tmp
 from dotenv import load_dotenv
@@ -29,8 +31,7 @@ if __name__ == '__main__':
 
     test_set = MolecularGraphDataset(test_fold, root=os.getenv(
         "graph_files")+"/fold3/"+"/data/", start=15000)
-
     train_set = ConcatDataset([train_set1, train_set2])
 
-    train_loader = DataLoader(train_set, **params)
-    test_loader = DataLoader(test_set, **params)
+    train_loader = DataLoader(train_set, **params, follow_batch=['x_s', 'x_t'])
+    test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
