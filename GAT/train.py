@@ -8,8 +8,33 @@ import torch.multiprocessing as tmp
 from torch import nn
 from dotenv import load_dotenv
 import os
+import numpy as np
 import gc
 import wandb
+
+
+def compute_weights(y_sample):
+    # get counts of 1s
+    labels = y_sample.size(1)
+
+    counts = list()
+    for i in range(labels):
+        region = y_sample[:, i]
+
+        ones = (region == 1.).sum()
+
+        if ones == 0:
+            ones = np.inf
+        counts.append(ones)
+
+    total_features = y_sample.size(0)*y_sample.size(1)
+
+    counts = np.array(counts)
+    weights = counts/total_features
+
+    inverse = (1/weights)
+    inverse = inverse.astype(np.float32)
+    return inverse
 
 
 def train_epoch():
@@ -22,10 +47,13 @@ def train_epoch():
 
     for step, graphs in enumerate(train_loader):
 
+        weights = torch.from_numpy(compute_weights(graphs.y))
         predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
+
+        loss_function = nn.BCELoss(weight=weights)
         loss = loss_function(predictions, graphs.y)
 
-        # Train the modle
+        # Train the model
         model.zero_grad()
         loss.backward()
 
@@ -58,7 +86,10 @@ def test_epoch():
     recalls = list()
 
     for step, graphs in enumerate(test_loader):
+        weights = torch.from_numpy(compute_weights(graphs.y))
         predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
+
+        loss_function = nn.BCELoss(weight=weights)
         loss = loss_function(predictions, graphs.y)
 
         epoch_loss += loss.item()
@@ -133,8 +164,8 @@ if __name__ == '__main__':
     load_dotenv(".env")
 
     # Set the training and testing folds
-    train_folds = ['fold1', 'fold2']
-    test_fold = 'fold3'
+    train_folds = ['fold1', 'fold2', 'fold3', 'fold4']
+    test_folds = ['fold5', 'fold6']
 
     params = {
         'batch_size': 32,
@@ -154,10 +185,18 @@ if __name__ == '__main__':
         fold_key=train_folds[0], root=os.getenv("graph_files")+"/fold1"+"/data/", start=0)
     train_set2 = MolecularGraphDataset(fold_key=train_folds[1], root=os.getenv("graph_files")+"/fold2/"
                                        + "/data/", start=7500)
+    train_set3 = MolecularGraphDataset(fold_key=train_folds[2], root=os.getenv("graph_files")+"/fold3/"
+                                       + "/data/", start=15000)
+    train_set4 = MolecularGraphDataset(fold_key=train_folds[3], root=os.getenv("graph_files")+"/fold4/"
+                                       + "/data/", start=22500)
 
-    test_set = MolecularGraphDataset(test_fold, root=os.getenv(
-        "graph_files")+"/fold3"+"/data/", start=15000)
-    train_set = ConcatDataset([train_set1, train_set2])
+    test_set1 = MolecularGraphDataset(fold_key=test_folds[0], root=os.getenv(
+        "graph_files")+"/fold5"+"/data/", start=30000)
+    test_set2 = MolecularGraphDataset(fold_key=test_folds[1], root=os.getenv(
+        "graph_files")+"/fold6"+"/data/", start=37500)
+
+    train_set = ConcatDataset([train_set1, train_set2, train_set3, train_set4])
+    test_set = ConcatDataset([test_set1, test_set2])
 
     train_loader = DataLoader(train_set, **params, follow_batch=['x_s', 'x_t'])
     test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
@@ -166,7 +205,7 @@ if __name__ == '__main__':
     model = GATModel(dataset=train_set)
     # actual dataset is passed.
 
-    NUM_EPOCHS = 100
+    NUM_EPOCHS = 1
     LR = 0.001
     BETAS = (0.9, 0.999)
 
@@ -174,9 +213,6 @@ if __name__ == '__main__':
 
     train_steps = (len(train_set)+params['batch_size']-1)//params['batch_size']
     test_steps = (len(test_set)+params['batch_size']-1)//params['batch_size']
-
-    # Loss function
-    loss_function = nn.BCELoss()
 
     # Metrics
     training_loop()
