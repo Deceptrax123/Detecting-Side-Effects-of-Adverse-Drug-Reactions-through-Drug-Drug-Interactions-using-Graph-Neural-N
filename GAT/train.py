@@ -29,12 +29,14 @@ def train_epoch():
         optimizer.step()
 
         epoch_loss += loss.item()
-        correct_preds += (predictions == graphs.y).float().sum()
+
+        correct_preds += (torch.where(predictions > 0.5, 1.0,
+                          0.0) == graphs.y).float().sum()
 
         del graphs
         del predictions
 
-    accuracy = (correct_preds*100)/len(test_set)
+    accuracy = (correct_preds*100)/len(train_set)
     return epoch_loss/train_steps, accuracy
 
 
@@ -48,7 +50,8 @@ def test_epoch():
 
         epoch_loss += loss.item()
 
-        correct_preds += (predictions == graphs.y).float().sum()
+        correct_preds += (torch.where(predictions > 0.5, 1.0,
+                          0.0) == graphs.y).float().sum()
         del graphs
         del predictions
 
@@ -134,6 +137,5 @@ if __name__ == '__main__':
     train_steps = (len(train_set)+params['batch_size']-1)//params['batch_size']
     test_steps = (len(test_set)+params['batch_size']-1)//params['batch_size']
 
-    loss_function = nn.BCEWithLogitsLoss()
-
+    loss_function = nn.BCELoss()
     training_loop()
