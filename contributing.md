@@ -5,6 +5,9 @@
 - Run ```pip install -r requirements.txt```
 - Create a new branch for every new model such as GAT, GCN, SAGE etc. For instance,  run ```git checkout -b GCN``` to create and run a Graph Convolutional Model
 - Commit and Push all changes to that specific branch only. I will review and merge if no further changes are needed.
+
+## Dataset
+You may download all the Graph Tensors with their folds over <a href="https://drive.google.com/file/d/1zQx6fv1Y_BEb11zE77OfM-9M4i-gTjXJ/view?usp=sharing">here</a>
   
 
 ## Note
