@@ -70,6 +70,12 @@ def training_loop():
                 "Testing Loss": test_loss
             })
 
+            if (epoch+1) % 10 == 0:
+                weights_path = "./weights/head_1/model{epoch}".format(
+                    epoch=epoch+1)
+
+                torch.save(model.state_dict(), weights_path)
+
 
 if __name__ == '__main__':
     tmp.set_sharing_strategy('file_system')
