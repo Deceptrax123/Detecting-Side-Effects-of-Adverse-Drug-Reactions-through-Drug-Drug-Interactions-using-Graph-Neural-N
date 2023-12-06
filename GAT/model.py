@@ -1,7 +1,6 @@
 import torch
 from torch_geometric.nn import GATConv, Linear, global_mean_pool
-from torch.nn import Module
-from Dataset.Molecule_dataset import MolecularGraphDataset
+from torch.nn import Module, Sigmoid
 
 
 class GATModel(Module):
@@ -25,6 +24,9 @@ class GATModel(Module):
         self.linear = Linear(in_channels=dataset[0].x_t.size(
             1)//4, out_channels=dataset[0].y.size(0))  # classifier
 
+        # Classsifier
+        self.classifier = Sigmoid()
+
     def forward(self, x, xs_batch, xt_batch):
         # graph1
         x1 = self.x_attention1(x.x_s, x.edge_index_s)
@@ -41,5 +43,6 @@ class GATModel(Module):
 
         # Classifier
         out = self.linear(x)
+        classifier = self.classifier(out)
 
-        return out
+        return classifier
