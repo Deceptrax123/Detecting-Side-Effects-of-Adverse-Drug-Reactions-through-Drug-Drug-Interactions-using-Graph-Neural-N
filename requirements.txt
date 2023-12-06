@@ -1,0 +1,8 @@
+torch
+torch_geometric
+numpy
+wandb 
+torchsummary
+torchmetrics
+python-dotenv
+matplotlib
