@@ -33,8 +33,8 @@ def train_epoch():
 
         epoch_loss += loss.item()
 
-        preds_threshold = torch.where(predictions > 0.5, 1.0,
-                                      0.0)
+        preds_threshold = torch.tensor(torch.where(predictions > 0.5, 1,
+                                                   0), dtype=torch.int64)
 
         precision, f1, accuracy, rec = classification_metrics(
             preds_threshold, graphs.y)
@@ -63,8 +63,8 @@ def test_epoch():
 
         epoch_loss += loss.item()
 
-        preds_threshold = torch.where(predictions > 0.5, 1.0,
-                                      0.0)
+        preds_threshold = torch.tensor(torch.where(predictions > 0.5, 1,
+                                                   0), dtype=torch.int64)
 
         # Compute Test Metrics
         precision, f1, accuracy, rec = classification_metrics(
