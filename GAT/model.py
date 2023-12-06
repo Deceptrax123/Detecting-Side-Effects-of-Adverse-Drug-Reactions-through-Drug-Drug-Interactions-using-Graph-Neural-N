@@ -1,7 +1,6 @@
 import torch
 from torch_geometric.nn import GATConv, Linear, global_mean_pool
 from torch.nn import Module
-from Dataset.Molecule_dataset import MolecularGraphDataset
 
 
 class GATModel(Module):
