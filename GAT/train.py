@@ -1,7 +1,7 @@
 from torch_geometric.loader import DataLoader
 from torch_geometric.graphgym import init_weights
 from Dataset.Molecule_dataset import MolecularGraphDataset
-from Metrics.metrics import classification_metrics
+from Metrics.metrics import classification_metrics, topk_precision
 import torch
 from model import GATModel
 from torch.utils.data import ConcatDataset
@@ -45,21 +45,17 @@ def train_epoch():
 
     accs = list()
     precisions = list()
-    f1s = list()
-    recalls = list()
-    hams = list()
-    precs = list()
 
     for step, graphs in enumerate(train_loader):
 
-        weights = torch.from_numpy(compute_weights(graphs.y))
+        # weights = torch.from_numpy(compute_weights(graphs.y))
         logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
 
-        loss_function = nn.BCEWithLogitsLoss(weight=weights)
+        # Train Model
+        model.zero_grad()
+        loss_function = nn.BCEWithLogitsLoss()
         loss = loss_function(logits, graphs.y)
 
-        # Train the model
-        optimizer.zero_grad()
         loss.backward()
 
         optimizer.step()
@@ -69,36 +65,31 @@ def train_epoch():
         preds_threshold = torch.where(predictions > 0.5, 1,
                                       0)
 
-        precision, f1, accuracy, rec, hamming, avg_prec = classification_metrics(
+        # Weighted accuracy if 0.5 is given as Hard Threshold
+        weighted_accuracy = classification_metrics(
             preds_threshold.int(), graphs.y.int())
+        # precision at k
+        prec_k = topk_precision(predictions, graphs.y.int(), k=5)
 
-        precisions.append(precision)
-        f1s.append(f1)
-        accs.append(accuracy)
-        recalls.append(rec)
-        hams.append(hamming)
-        precs.append(avg_prec)
+        precisions.append(prec_k)
+        accs.append(weighted_accuracy)
 
         del graphs
         del predictions
 
-    return epoch_loss/train_steps, sum(precisions)/len(precisions), sum(f1s)/len(f1s), sum(accs)/len(accs), sum(recalls)/len(recalls), sum(hams)/len(hams), sum(precs)/len(precs)
+    return epoch_loss/train_steps, sum(precisions)/len(precisions), sum(accs)/len(accs)
 
 
 def test_epoch():
     epoch_loss = 0
     precisions = list()
-    f1s = list()
     accs = list()
-    recalls = list()
-    hams = list()
-    precs = list()
 
     for step, graphs in enumerate(test_loader):
-        weights = torch.from_numpy(compute_weights(graphs.y))
+        # weights = torch.from_numpy(compute_weights(graphs.y))
         logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
 
-        loss_function = nn.BCEWithLogitsLoss(weight=weights)
+        loss_function = nn.BCEWithLogitsLoss()
         loss = loss_function(logits, graphs.y)
 
         epoch_loss += loss.item()
@@ -107,32 +98,30 @@ def test_epoch():
                                       0)
 
         # Compute Test Metrics
-        precision, f1, accuracy, rec, hamming, avg_prec = classification_metrics(
+        accuracy = classification_metrics(
             preds_threshold.int(), graphs.y.int())
 
-        precisions.append(precision)
-        f1s.append(f1)
+        precision_k = topk_precision(predictions, graphs.y.int(), k=5)
+
         accs.append(accuracy)
-        recalls.append(rec)
-        hams.append(hamming)
-        precs.append(avg_prec)
+        precisions.append(precision_k)
 
         del graphs
         del predictions
 
-    return epoch_loss/test_steps, sum(precisions)/len(precisions), sum(f1s)/len(f1s), sum(accs)/len(accs), sum(recalls)/len(recalls), sum(hams)/len(hams), sum(precs)/len(precs)
+    return epoch_loss/test_steps, sum(precisions)/len(precisions), sum(accs)/len(accs)
 
 
 def training_loop():
     for epoch in range(NUM_EPOCHS):
 
         model.train(True)
-        train_loss, train_prec, train_f1, train_acc, train_rec, train_hamming, train_avgprec = train_epoch()
+        train_loss, train_prec, train_acc = train_epoch()
 
         model.eval()
 
         with torch.no_grad():
-            test_loss, test_prec, test_f1, test_acc, test_rec, test_hamming, test_avgprec = test_epoch()
+            test_loss, test_prec, test_acc = test_epoch()
 
             print("Epoch {epoch}".format(epoch=epoch+1))
             print("Train Loss: {loss}".format(loss=train_loss))
@@ -140,37 +129,19 @@ def training_loop():
 
             print("Train Metrics")
             print("Train Accuracy:{acc}".format(acc=train_acc))
-            print("Train F1:{f1}".format(f1=train_f1))
             print("Train Precision:{precision}".format(precision=train_prec))
-            print("Train Recall:{rec}".format(rec=train_rec))
-            print("Train Hamming:{hamming}".format(hamming=train_hamming))
-            print("Train Average Precision:{avg_prec}".format(
-                avg_prec=train_avgprec))
 
             print("Test Metrics")
             print("Test Accuracy:{acc}".format(acc=test_acc))
-            print("Test F1: {f1}".format(f1=test_f1))
             print("Test Precision:{precision}".format(precision=test_prec))
-            print("Test Recall:{rec}".format(rec=test_rec))
-            print("Test Hamming:{hamming}".format(hamming=test_hamming))
-            print("Test Average Precision:{avg_prec}".format(
-                avg_prec=test_avgprec))
 
             wandb.log({
                 "Training Loss": train_loss,
                 "Testing Loss": test_loss,
                 "Train Accuracy": train_acc,
-                "Train F1": train_f1,
-                "Train Recall": train_rec,
                 "Train Precision": train_prec,
-                "Train Hamming": train_hamming,
-                "Train Average Precision": train_avgprec,
                 "Test Accuracy": test_acc,
-                "Test F1": test_f1,
-                "Test Precision": test_prec,
-                "Test Recall": test_rec,
-                "Test Hamming": test_hamming,
-                "Test Average Precision": test_avgprec
+                "Test Precision": test_prec
             })
 
             if (epoch+1) % 10 == 0:
@@ -199,7 +170,7 @@ if __name__ == '__main__':
         project="Drug Interaction",
         config={
             "Architecture": "Graph Attention Network",
-            "Dataset": "TDC Dataset TWOSIDES"
+            "Dataset": "TDC Dataset TWOSIDES",
         }
     )
 
@@ -235,7 +206,7 @@ if __name__ == '__main__':
 
     # actual dataset is passed.
 
-    NUM_EPOCHS = 100000
+    NUM_EPOCHS = 1
     LR = 0.001
     BETAS = (0.9, 0.999)
 
