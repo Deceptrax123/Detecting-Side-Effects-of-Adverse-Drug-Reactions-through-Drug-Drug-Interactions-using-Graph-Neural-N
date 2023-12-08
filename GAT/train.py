@@ -69,7 +69,7 @@ def train_epoch():
         weighted_accuracy = classification_metrics(
             preds_threshold.int(), graphs.y.int())
         # precision at k
-        prec_k = topk_precision(predictions, graphs.y.int(), k=5)
+        prec_k, _ = topk_precision(predictions, graphs.y.int(), k=5)
 
         precisions.append(prec_k)
         accs.append(weighted_accuracy)
@@ -101,7 +101,7 @@ def test_epoch():
         accuracy = classification_metrics(
             preds_threshold.int(), graphs.y.int())
 
-        precision_k = topk_precision(predictions, graphs.y.int(), k=5)
+        precision_k, _ = topk_precision(predictions, graphs.y.int(), k=5)
 
         accs.append(accuracy)
         precisions.append(precision_k)

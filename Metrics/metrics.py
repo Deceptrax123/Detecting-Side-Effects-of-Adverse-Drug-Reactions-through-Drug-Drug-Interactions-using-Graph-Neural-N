@@ -9,6 +9,7 @@ def topk_precision(predictions, labels, k):
     # sort the labels by predictions
 
     precisions = list()
+    labs = list()
     for i in range(predictions.size(0)):
         trues = 0
         values, indices = torch.sort(predictions[i], descending=True)
@@ -27,8 +28,9 @@ def topk_precision(predictions, labels, k):
             precision = 1
 
         precisions.append(precision)
+        labs.append(topk_pred_labels)
 
-    return sum(precisions)/len(precisions)
+    return sum(precisions)/len(precisions), labs
 
 
 # Weighted Accruacy

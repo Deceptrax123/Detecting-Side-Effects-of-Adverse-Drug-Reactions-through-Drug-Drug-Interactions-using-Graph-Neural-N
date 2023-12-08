@@ -13,6 +13,9 @@ Icon
 #loggers
 wandb
 
+#csvs
+data/
+
 #Weights
 weights/
 
