@@ -161,7 +161,7 @@ if __name__ == '__main__':
     test_folds = ['fold8']
 
     params = {
-        'batch_size': 128,
+        'batch_size': 32,
         'shuffle': True,
         'num_workers': 0
     }
@@ -206,7 +206,7 @@ if __name__ == '__main__':
 
     # actual dataset is passed.
 
-    NUM_EPOCHS = 1
+    NUM_EPOCHS = 10000
     LR = 0.001
     BETAS = (0.9, 0.999)
 

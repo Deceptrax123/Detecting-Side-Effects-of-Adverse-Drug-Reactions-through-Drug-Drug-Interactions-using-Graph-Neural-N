@@ -10,24 +10,24 @@ class GATModel(Module):
 
         # Reactant 1
         self.x_attention1 = GATv2Conv(in_channels=dataset[0].x_s.size(1), out_channels=dataset[0].x_s.size(1)//2,
-                                      edge_dim=dataset[0].edge_index_s.size(1), heads=8, dropout=0.4)
+                                      edge_dim=9, heads=8, dropout=0.4)
 
         self.gn1 = GraphNorm(in_channels=(dataset[0].x_s.size(
             1)//2)*8)
 
         self.x_attention2 = GATv2Conv(in_channels=(dataset[0].x_s.size(
-            1)//2)*8, out_channels=dataset[0].x_s.size(1)//4, edge_dim=dataset[0].edge_index_s.size(1), dropout=0.4)
+            1)//2)*8, out_channels=dataset[0].x_s.size(1)//4, edge_dim=9, dropout=0.4)
 
         self.gn2 = GraphNorm(in_channels=dataset[0].x_s.size(1)//4)
 
         # Reactant 2
         self.y_attention1 = GATv2Conv(in_channels=dataset[0].x_t.size(1), out_channels=dataset[0].x_t.size(1)//2,
-                                      edge_dim=dataset[0].edge_index_t.size(1), heads=8, dropout=0.4)
+                                      edge_dim=9, heads=8, dropout=0.4)
 
         self.gn3 = GraphNorm(in_channels=(dataset[0].x_s.size(
             1)//2)*8)
         self.y_attention2 = GATv2Conv(in_channels=(dataset[0].x_t.size(1)//2)*8, out_channels=dataset[0].x_t.size(1)//4,
-                                      edge_dim=dataset[0].edge_index_t.size(1), dropout=0.4)
+                                      edge_dim=9, dropout=0.4)
         self.gn4 = GraphNorm(in_channels=dataset[0].x_s.size(1)//4)
 
         # Linear Layers
@@ -38,18 +38,18 @@ class GATModel(Module):
 
     def forward(self, x, xs_batch, xt_batch):
         # graph1
-        x1 = self.x_attention1(x.x_s, x.edge_index_s)
+        x1 = self.x_attention1(x.x_s, x.edge_index_s, edge_attr=x.edge_attr_s)
         x1 = self.gn1(x1)
-        x2 = self.x_attention2(x1, x.edge_index_s)
+        x2 = self.x_attention2(x1, x.edge_index_s, edge_attr=x.edge_attr_s)
         x2 = self.gn2(x2)
-        xs = global_max_pool(x2, batch=xs_batch)
+        xs = global_mean_pool(x2, batch=xs_batch)
 
         # graph2
-        x3 = self.y_attention1(x.x_t, x.edge_index_t)
+        x3 = self.y_attention1(x.x_t, x.edge_index_t, edge_attr=x.edge_attr_t)
         x3 = self.gn3(x3)
-        x4 = self.y_attention2(x3, x.edge_index_t)
+        x4 = self.y_attention2(x3, x.edge_index_t, edge_attr=x.edge_attr_t)
         x4 = self.gn4(x4)
-        xt = global_max_pool(x4, batch=xt_batch)
+        xt = global_mean_pool(x4, batch=xt_batch)
 
         # # Aggregate
         x = torch.add(xs, xt)

@@ -13,15 +13,19 @@ def topk_precision(predictions, labels, k):
         trues = 0
         values, indices = torch.sort(predictions[i], descending=True)
 
-        # get top k predictions
-        topk_pred_labels = indices[:k]
+        if indices.size(0) >= k:
+            # get top k predictions
+            topk_pred_labels = indices[:k]
 
-        # search if top k labels are true or false classifications
-        for j in topk_pred_labels:
-            if labels[i][j.item()] == 1:
-                trues += 1
+            # search if top k labels are true or false classifications
+            for j in topk_pred_labels:
+                if labels[i][j.item()] == 1:
+                    trues += 1
 
-        precision = trues/k
+            precision = trues/k
+        else:
+            precision = 1
+
         precisions.append(precision)
 
     return sum(precisions)/len(precisions)
