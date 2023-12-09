@@ -44,7 +44,6 @@ def train_epoch():
     epoch_loss = 0
 
     accs = list()
-    precisions = list()
 
     for step, graphs in enumerate(train_loader):
 
@@ -68,21 +67,17 @@ def train_epoch():
         # Weighted accuracy if 0.5 is given as Hard Threshold
         weighted_accuracy = classification_metrics(
             preds_threshold.int(), graphs.y.int())
-        # precision at k
-        prec_k, _ = topk_precision(predictions, graphs.y.int(), k=5)
 
-        precisions.append(prec_k)
         accs.append(weighted_accuracy)
 
         del graphs
         del predictions
 
-    return epoch_loss/train_steps, sum(precisions)/len(precisions), sum(accs)/len(accs)
+    return epoch_loss/train_steps, sum(accs)/len(accs)
 
 
 def test_epoch():
     epoch_loss = 0
-    precisions = list()
     accs = list()
 
     for step, graphs in enumerate(test_loader):
@@ -101,27 +96,24 @@ def test_epoch():
         accuracy = classification_metrics(
             preds_threshold.int(), graphs.y.int())
 
-        precision_k, _ = topk_precision(predictions, graphs.y.int(), k=5)
-
         accs.append(accuracy)
-        precisions.append(precision_k)
 
         del graphs
         del predictions
 
-    return epoch_loss/test_steps, sum(precisions)/len(precisions), sum(accs)/len(accs)
+    return epoch_loss/test_steps, sum(accs)/len(accs)
 
 
 def training_loop():
     for epoch in range(NUM_EPOCHS):
 
         model.train(True)
-        train_loss, train_prec, train_acc = train_epoch()
+        train_loss, train_acc = train_epoch()
 
         model.eval()
 
         with torch.no_grad():
-            test_loss, test_prec, test_acc = test_epoch()
+            test_loss, test_acc = test_epoch()
 
             print("Epoch {epoch}".format(epoch=epoch+1))
             print("Train Loss: {loss}".format(loss=train_loss))
@@ -129,19 +121,16 @@ def training_loop():
 
             print("Train Metrics")
             print("Train Accuracy:{acc}".format(acc=train_acc))
-            print("Train Precision:{precision}".format(precision=train_prec))
 
             print("Test Metrics")
             print("Test Accuracy:{acc}".format(acc=test_acc))
-            print("Test Precision:{precision}".format(precision=test_prec))
 
             wandb.log({
                 "Training Loss": train_loss,
                 "Testing Loss": test_loss,
                 "Train Accuracy": train_acc,
-                "Train Precision": train_prec,
                 "Test Accuracy": test_acc,
-                "Test Precision": test_prec
+
             })
 
             if (epoch+1) % 10 == 0:

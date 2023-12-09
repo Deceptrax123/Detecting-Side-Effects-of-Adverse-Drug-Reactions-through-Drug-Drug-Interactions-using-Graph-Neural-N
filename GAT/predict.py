@@ -34,18 +34,20 @@ def predict():  # batch size 1 to get single instance predictions
 
     precisions = list()
     labels = list()
+    scores = list()
     for step, graphs in enumerate(test_loader):
         logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
 
-        precision, topk_labels = topk_precision(
-            predictions, graphs.y.int(), k=20)
+        precision, topk_labels, score = topk_precision(
+            predictions, graphs.y.int(), k=5)
 
         top_symptoms = label_map_target(topk_labels)
 
         precisions.append(precision)
         labels.append(top_symptoms)
+        scores.append(score)
 
-    return sum(precisions)/len(precisions), labels
+    return sum(precisions)/len(precisions), labels, sum(scores)/len(scores)
 
 
 if __name__ == '__main__':
@@ -68,6 +70,7 @@ if __name__ == '__main__':
         "GAT/weights/train_fold_12/head_1/model470.pth"))
 
     # Get the Predictions with Scores
-    prec, symps = predict()
-    print("Confidence :", prec)
+    prec, symps, p = predict()
     print("Symptoms: ", symps)
+    print("Confidence: ", p)
+    print("Precision@k: ", prec)
