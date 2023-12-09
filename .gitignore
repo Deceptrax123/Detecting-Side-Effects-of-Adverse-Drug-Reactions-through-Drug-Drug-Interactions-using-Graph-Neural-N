@@ -38,6 +38,9 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+#data
+data/
+
 ### macOS Patch ###
 # iCloud generated files
 *.icloud
