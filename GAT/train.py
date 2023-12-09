@@ -134,7 +134,7 @@ def training_loop():
             })
 
             if (epoch+1) % 10 == 0:
-                weights_path = "GAT/weights/train_fold_12/head_1/model{epoch}.pth".format(
+                weights_path = "GAT/weights/activation_dp/model{epoch}.pth".format(
                     epoch=epoch+1)
 
                 torch.save(model.state_dict(), weights_path)
