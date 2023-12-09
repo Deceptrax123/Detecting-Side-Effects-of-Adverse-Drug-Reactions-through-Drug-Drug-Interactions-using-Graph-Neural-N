@@ -13,6 +13,9 @@ Icon
 #loggers
 wandb
 
+#csvs
+data/
+
 #Weights
 weights/
 
@@ -34,6 +37,9 @@ weights/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+#data
+data/
 
 ### macOS Patch ###
 # iCloud generated files

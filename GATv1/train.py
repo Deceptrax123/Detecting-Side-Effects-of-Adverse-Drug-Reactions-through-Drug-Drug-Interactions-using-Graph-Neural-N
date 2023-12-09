@@ -14,32 +14,6 @@ import gc
 import wandb
 
 
-def compute_weights(y_sample):
-    # get counts of 1
-    labels = y_sample.size(1)
-
-    counts = list()
-    for i in range(labels):
-        region = y_sample[:, i]
-
-        ones = (region == 1.).sum()
-
-        if ones == 0:
-            ones = np.inf
-
-        counts.append(ones)
-
-    total_features = y_sample.size(0)*y_sample.size(1)
-
-    counts = np.array(counts)
-    weights = counts/total_features
-
-    inverse = 1/weights
-    inverse = inverse.astype(np.float32)
-
-    return inverse
-
-
 def train_epoch():
     epoch_loss = 0
 
