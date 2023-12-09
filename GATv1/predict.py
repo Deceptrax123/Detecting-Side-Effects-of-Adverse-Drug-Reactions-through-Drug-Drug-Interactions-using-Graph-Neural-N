@@ -2,7 +2,7 @@ import torch
 from Dataset.Molecule_dataset import MolecularGraphDataset
 from torch_geometric.loader import DataLoader
 from torch_geometric.graphgym import init_weights
-from Dataset.Molecule_dataset import MolecularGraphDataset
+from Dataset.test_molecule_dataset import TestMolecularGraphDataset
 from Metrics.metrics import classification_metrics, topk_precision
 import torch
 from model import GATModel
@@ -20,37 +20,44 @@ from tdc.utils import get_label_map
 def label_map_target(labels):  # Obtained from dataset analysis
     # Map labels
     syms = list()
-    for labels in labels:
+    for l in labels:
         label_map = get_label_map(
             name='TWOSIDES', task='DDI', name_column='Side Effect Name', path='data/')
 
-        symptoms = [label_map.get(item.item(), item.item()) for item in labels]
+        symptoms = [label_map.get(item.item(), item.item()) for item in l]
         syms.append(symptoms)
 
     return syms
 
 
 def predict():  # batch size 1 to get single instance predictions
+
+    precisions = list()
+    labels = list()
+    scores = list()
     for step, graphs in enumerate(test_loader):
         logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
 
-        precision, topk_labels = topk_precision(
+        precision, topk_labels, score = topk_precision(
             predictions, graphs.y.int(), k=5)
 
-    top_symptoms = label_map_target(topk_labels)
+        top_symptoms = label_map_target(topk_labels)
 
-    return precision, top_symptoms
+        precisions.append(precision)
+        labels.append(top_symptoms)
+        scores.append(score)
+
+    return sum(precisions)/len(precisions), labels, sum(scores)/len(scores)
 
 
 if __name__ == '__main__':
 
     load_dotenv(".env")
-    test_folds = ['fold8']
-    test_set = MolecularGraphDataset(fold_key=test_folds[0], root=os.getenv(
-        "graph_files")+"/fold8"+"/data/", start=52500)
+    test_set = TestMolecularGraphDataset(fold_key='val', root=os.getenv(
+        "graph_files")+"/val"+"/data/")
 
     params = {
-        "batch_size": 2,
+        "batch_size": 16,
         'shuffle': True
     }
 
@@ -58,10 +65,12 @@ if __name__ == '__main__':
 
     model = GATModel(dataset=test_set)  # For tensor dimensions
 
+    model.eval()
     model.load_state_dict(torch.load(
-        "GAT/weights/train_fold_12/head_1/model70.pth"))
+        "GAT/weights/train_fold_12/head_1/model470.pth"))
 
     # Get the Predictions with Scores
-    prec, symps = predict()
-    print("Confidence :", prec)
+    prec, symps, p = predict()
     print("Symptoms: ", symps)
+    print("Confidence: ", p)
+    print("Precision@k: ", prec)
