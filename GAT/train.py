@@ -133,9 +133,9 @@ def training_loop():
 
             })
 
-            if (epoch+1) % 10 == 0:
-                weights_path = "GAT/weights/activation_dp/model{epoch}.pth".format(
-                    epoch=epoch+1)
+            if (epoch+221) % 10 == 0:
+                weights_path = "GAT/weights/activation/model{epoch}.pth".format(
+                    epoch=epoch+221)
 
                 torch.save(model.state_dict(), weights_path)
 
@@ -189,9 +189,10 @@ if __name__ == '__main__':
 
     # The dataset is only for feature shape reference, no
     model = GATModel(dataset=train_set)
+    model.load_state_dict(torch.load("GAT/weights/activation/model220.pth"))
 
-    for m in model.modules():
-        init_weights(m)
+    # for m in model.modules():
+    #     init_weights(m)
 
     # actual dataset is passed.
 
