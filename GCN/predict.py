@@ -22,7 +22,7 @@ def label_map_target(labels):  # Obtained from dataset analysis
     syms = list()
     for l in labels:
         label_map = get_label_map(
-            name='TWOSIDES', task='DDI', name_column='Side Effect Name', path='path/twosides.csv')
+            name='TWOSIDES', task='DDI', name_column='Side Effect Name', path='data/twosides.csv')
 
         symptoms = [label_map.get(item.item(), item.item()) for item in l]
         syms.append(symptoms)
@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     model.eval()
     model.load_state_dict(torch.load(
-        "GCN/weights/train_fold_12/head_1/model680.pth"))
+        "GCN/weights/model680.pth"))
 
     # Get the Predictions with Scores
     prec, symps, p = predict()
