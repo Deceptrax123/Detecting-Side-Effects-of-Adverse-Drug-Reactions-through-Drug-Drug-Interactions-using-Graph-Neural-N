@@ -3,7 +3,7 @@ from torch_geometric.graphgym import init_weights
 from Dataset.Molecule_dataset import MolecularGraphDataset
 from Metrics.metrics import classification_metrics, topk_precision
 import torch
-from model import GATModel
+from model import MLPModel
 from torch.utils.data import ConcatDataset
 import torch.multiprocessing as tmp
 from torch import nn
@@ -14,32 +14,6 @@ import gc
 import wandb
 
 
-def compute_weights(y_sample):
-    # get counts of 1
-    labels = y_sample.size(1)
-
-    counts = list()
-    for i in range(labels):
-        region = y_sample[:, i]
-
-        ones = (region == 1.).sum()
-
-        if ones == 0:
-            ones = np.inf
-
-        counts.append(ones)
-
-    total_features = y_sample.size(0)*y_sample.size(1)
-
-    counts = np.array(counts)
-    weights = counts/total_features
-
-    inverse = 1/weights
-    inverse = inverse.astype(np.float32)
-
-    return inverse
-
-
 def train_epoch():
     epoch_loss = 0
 
@@ -47,7 +21,6 @@ def train_epoch():
 
     for step, graphs in enumerate(train_loader):
 
-        # weights = torch.from_numpy(compute_weights(graphs.y))
         logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
 
         # Train Model
@@ -81,7 +54,6 @@ def test_epoch():
     accs = list()
 
     for step, graphs in enumerate(test_loader):
-        # weights = torch.from_numpy(compute_weights(graphs.y))
         logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
 
         loss_function = nn.BCEWithLogitsLoss()
@@ -133,9 +105,9 @@ def training_loop():
 
             })
 
-            if (epoch+221) % 10 == 0:
-                weights_path = "GAT/weights/activation/model{epoch}.pth".format(
-                    epoch=epoch+221)
+            if (epoch+1) % 10 == 0:
+                weights_path = "MLP/weights/train_fold_12/head_1/model{epoch}.pth".format(
+                    epoch=epoch+1)
 
                 torch.save(model.state_dict(), weights_path)
 
@@ -188,11 +160,10 @@ if __name__ == '__main__':
     test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
 
     # The dataset is only for feature shape reference, no
-    model = GATModel(dataset=train_set)
-    model.load_state_dict(torch.load("GAT/weights/activation/model220.pth"))
+    model = MLPModel()
 
-    # for m in model.modules():
-    #     init_weights(m)
+    for m in model.modules():
+        init_weights(m)
 
     # actual dataset is passed.
 
