@@ -10,7 +10,7 @@ class GATModel(Module):
 
         # Reactant 1
         self.x_attention1 = GATv2Conv(in_channels=dataset[0].x_s.size(1), out_channels=dataset[0].x_s.size(1)//2,
-                                      edge_dim=9, heads=8, dropout=0.5)
+                                      edge_dim=9, heads=8, dropout=0.4)
 
         self.lr1 = LeakyReLU()
 
@@ -18,42 +18,42 @@ class GATModel(Module):
             1)//2)*8)
 
         self.x_attention2 = GATv2Conv(in_channels=(dataset[0].x_s.size(
-            1)//2)*8, out_channels=dataset[0].x_s.size(1)//4, edge_dim=9, dropout=0.5, heads=4)
+            1)//2)*8, out_channels=dataset[0].x_s.size(1)//4, edge_dim=9, dropout=0.4, heads=4)
         self.lr2 = LeakyReLU()
 
         self.gn2 = GraphNorm(in_channels=dataset[0].x_s.size(1)//4*4)
 
         self.x_attention3 = GATv2Conv(in_channels=(
-            dataset[0].x_s.size(1)//4)*4, out_channels=dataset[0].x_s.size(1)//8, edge_dim=9, dropout=0.5)
+            dataset[0].x_s.size(1)//4)*4, out_channels=dataset[0].x_s.size(1)//8, edge_dim=9, dropout=0.4)
         self.lr3 = LeakyReLU()
         self.gn3 = GraphNorm(in_channels=dataset[0].x_t.size(1)//8)
 
         # Reactant 2
         self.y_attention1 = GATv2Conv(in_channels=dataset[0].x_t.size(1), out_channels=dataset[0].x_t.size(1)//2,
-                                      edge_dim=9, heads=8, dropout=0.5)
+                                      edge_dim=9, heads=8, dropout=0.4)
 
         self.gn4 = GraphNorm(in_channels=(dataset[0].x_t.size(
             1)//2)*8)
         self.lr4 = LeakyReLU()
         self.y_attention2 = GATv2Conv(in_channels=(dataset[0].x_t.size(1)//2)*8, out_channels=dataset[0].x_t.size(1)//4,
-                                      edge_dim=9, dropout=0.5, heads=4)
+                                      edge_dim=9, dropout=0.4, heads=4)
         self.gn5 = GraphNorm(in_channels=dataset[0].x_s.size(1)//4*4)
         self.lr5 = LeakyReLU()
 
         self.y_attention3 = GATv2Conv(in_channels=(
-            dataset[0].x_t.size(1)//4)*4, out_channels=dataset[0].x_t.size(1)//8, edge_dim=9, dropout=0.5)
+            dataset[0].x_t.size(1)//4)*4, out_channels=dataset[0].x_t.size(1)//8, edge_dim=9, dropout=0.4)
         self.gn6 = GraphNorm(in_channels=dataset[0].x_t.size(1)//8)
         self.lr6 = LeakyReLU()
 
         # Linear Layers
         self.linear1 = Linear(in_features=(dataset[0].x_t.size(
             1)//8), out_features=329)
-        self.dp1 = Dropout1d()
+        self.dp1 = Dropout1d(0.5)
         self.bn1 = BatchNorm1d(num_features=329)
         self.lr7 = LeakyReLU()
 
         self.linear2 = Linear(in_features=329, out_features=658)
-        self.dp2 = Dropout1d()
+        self.dp2 = Dropout1d(0.5)
         self.bn2 = BatchNorm1d(num_features=658)
         self.lr8 = LeakyReLU()
 
@@ -89,11 +89,9 @@ class GATModel(Module):
 
         # Classifier
         x = self.linear1(xs)
-        x = self.dp1(x)
         x = self.bn1(x)
         x = self.lr7(x)
         x = self.linear2(x)
-        x = self.dp2(x)
         x = self.bn2(x)
         x = self.lr8(x)
         x = self.linear3(x)
