@@ -5,7 +5,7 @@ from torch_geometric.graphgym import init_weights
 from Dataset.test_molecule_dataset import TestMolecularGraphDataset
 from Metrics.metrics import classification_metrics, topk_precision
 import torch
-from model import GATModel
+from model import GCNModel
 from torch.utils.data import ConcatDataset
 import torch.multiprocessing as tmp
 from torch import nn
@@ -22,7 +22,7 @@ def label_map_target(labels):  # Obtained from dataset analysis
     syms = list()
     for l in labels:
         label_map = get_label_map(
-            name='TWOSIDES', task='DDI', name_column='Side Effect Name', path='data/')
+            name='TWOSIDES', task='DDI', name_column='Side Effect Name', path='path/twosides.csv')
 
         symptoms = [label_map.get(item.item(), item.item()) for item in l]
         syms.append(symptoms)
@@ -63,11 +63,11 @@ if __name__ == '__main__':
 
     test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
 
-    model = GCnModel(dataset=test_set)  # For tensor dimensions
+    model = GCNModel(dataset=test_set)  # For tensor dimensions
 
     model.eval()
     model.load_state_dict(torch.load(
-        "C:/Users/varen/Drug-Interaction-Using-GNNs/GCN/weights.pth"))
+        "GCN/weights/train_fold_12/head_1/model680.pth"))
 
     # Get the Predictions with Scores
     prec, symps, p = predict()
