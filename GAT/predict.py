@@ -57,7 +57,7 @@ if __name__ == '__main__':
         "graph_files")+"/val"+"/data/")
 
     params = {
-        "batch_size": 32,
+        "batch_size": 16,
         'shuffle': True
     }
 
@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     model.eval()
     model.load_state_dict(torch.load(
-        "GAT/weights/activation/model220.pth"))
+        "GAT/weights/activation/model730.pth"))
 
     # Get the Predictions with Scores
     prec, symps, p = predict()
