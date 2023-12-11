@@ -7,6 +7,7 @@ from model import GCNModel
 from torch.utils.data import ConcatDataset
 import torch.multiprocessing as tmp
 from torch import nn
+from GCN.initialize import initialize
 from dotenv import load_dotenv
 import os
 import numpy as np
@@ -49,7 +50,8 @@ def train_epoch():
         graphs = graphs.to(device)
 
         # weights = torch.from_numpy(compute_weights(graphs.y))
-        logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch,device)
+        logits, predictions = model(
+            graphs, graphs.x_s_batch, graphs.x_t_batch, device)
 
         # Train Model
         model.zero_grad()
@@ -64,11 +66,12 @@ def train_epoch():
 
         preds_threshold = torch.where(predictions > 0.5, 1,
                                       0)
-        predictions = predictions.cpu() #shifted to cpu
+        predictions = predictions.cpu()  # shifted to cpu
         labels_cpu = graphs.y.int().cpu()
         # Weighted accuracy if 0.5 is given as Hard Threshold
-        weighted_accuracy = classification_metrics(predictions, graphs.y.int().cpu())
-            #preds_threshold.int(), graphs.y.int())
+        weighted_accuracy = classification_metrics(
+            predictions, graphs.y.int().cpu())
+        # preds_threshold.int(), graphs.y.int())
 
         accs.append(weighted_accuracy)
 
@@ -85,7 +88,8 @@ def test_epoch():
     for step, graphs in enumerate(test_loader):
         # weights = torch.from_numpy(compute_weights(graphs.y))
         graphs = graphs.to(device)
-        logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch,device)
+        logits, predictions = model(
+            graphs, graphs.x_s_batch, graphs.x_t_batch, device)
 
         loss_function = nn.BCEWithLogitsLoss()
         loss = loss_function(logits, graphs.y)
@@ -95,11 +99,11 @@ def test_epoch():
         preds_threshold = torch.where(predictions > 0.5, 1,
                                       0)
 
-        predictions = predictions.cpu() #Shifting predictions to cpu                         
+        predictions = predictions.cpu()  # Shifting predictions to cpu
 
         # Compute Test Metrics
-        accuracy = classification_metrics(predictions,graphs.y.int().cpu())
-            #preds_threshold.int(), graphs.y.int())
+        accuracy = classification_metrics(predictions, graphs.y.int().cpu())
+        # preds_threshold.int(), graphs.y.int())
 
         accs.append(accuracy)
 
@@ -138,18 +142,19 @@ def training_loop():
 
             })
 
-            #if (epoch+1) % 10 == 0:
-               # weights_path = "GCN/weights/activation/model{epoch}.pth".format(
-                  #  epoch=epoch+1)
+            # if (epoch+1) % 10 == 0:
+            # weights_path = "GCN/weights/activation/model{epoch}.pth".format(
+            #  epoch=epoch+1)
 
-                #torch.save(model.state_dict(), weights_path)
+            # torch.save(model.state_dict(), weights_path)
 
             if (epoch + 1) % 10 == 0:
                 weights_dir = "GCN/weights/train_fold_12/head_1/"
-                os.makedirs(weights_dir, exist_ok=True)  # Create directory if it doesn't exist
-                weights_path = os.path.join(weights_dir, f"model{epoch + 1}.pth")
+                # Create directory if it doesn't exist
+                os.makedirs(weights_dir, exist_ok=True)
+                weights_path = os.path.join(
+                    weights_dir, f"model{epoch + 1}.pth")
                 torch.save(model.state_dict(), weights_path)
-
 
 
 if __name__ == '__main__':
@@ -205,8 +210,9 @@ if __name__ == '__main__':
     for m in model.modules():
         init_weights(m)
 
-    # actual dataset is passed.
+    model.apply(initialize)  # Initialize gcn layers with He Norm.
 
+    # actual dataset is passed.
     NUM_EPOCHS = 1000
     LR = 0.001
     BETAS = (0.9, 0.999)
