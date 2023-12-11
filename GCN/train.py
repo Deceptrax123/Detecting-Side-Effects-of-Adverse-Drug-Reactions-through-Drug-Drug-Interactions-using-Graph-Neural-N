@@ -46,9 +46,10 @@ def train_epoch():
     accs = list()
 
     for step, graphs in enumerate(train_loader):
+        graphs = graphs.to(device)
 
         # weights = torch.from_numpy(compute_weights(graphs.y))
-        logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
+        logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch,device)
 
         # Train Model
         model.zero_grad()
@@ -63,10 +64,11 @@ def train_epoch():
 
         preds_threshold = torch.where(predictions > 0.5, 1,
                                       0)
-
+        predictions = predictions.cpu() #shifted to cpu
+        labels_cpu = graphs.y.int().cpu()
         # Weighted accuracy if 0.5 is given as Hard Threshold
-        weighted_accuracy = classification_metrics(
-            preds_threshold.int(), graphs.y.int())
+        weighted_accuracy = classification_metrics(predictions, graphs.y.int().cpu())
+            #preds_threshold.int(), graphs.y.int())
 
         accs.append(weighted_accuracy)
 
@@ -82,7 +84,8 @@ def test_epoch():
 
     for step, graphs in enumerate(test_loader):
         # weights = torch.from_numpy(compute_weights(graphs.y))
-        logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
+        graphs = graphs.to(device)
+        logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch,device)
 
         loss_function = nn.BCEWithLogitsLoss()
         loss = loss_function(logits, graphs.y)
@@ -92,9 +95,11 @@ def test_epoch():
         preds_threshold = torch.where(predictions > 0.5, 1,
                                       0)
 
+        predictions = predictions.cpu() #Shifting predictions to cpu                         
+
         # Compute Test Metrics
-        accuracy = classification_metrics(
-            preds_threshold.int(), graphs.y.int())
+        accuracy = classification_metrics(predictions,graphs.y.int().cpu())
+            #preds_threshold.int(), graphs.y.int())
 
         accs.append(accuracy)
 
@@ -161,6 +166,7 @@ if __name__ == '__main__':
         'shuffle': True,
         'num_workers': 0
     }
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     wandb.init(
         project="Drug Interaction",
@@ -195,13 +201,13 @@ if __name__ == '__main__':
     test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
 
     # The dataset is only for feature shape reference, no
-    model = GCNModel(dataset=train_set)
+    model = GCNModel(dataset=train_set).to(device)
     for m in model.modules():
         init_weights(m)
 
     # actual dataset is passed.
 
-    NUM_EPOCHS = 10000
+    NUM_EPOCHS = 1000
     LR = 0.001
     BETAS = (0.9, 0.999)
 
