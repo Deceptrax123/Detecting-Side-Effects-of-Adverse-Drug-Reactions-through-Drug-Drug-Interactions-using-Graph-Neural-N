@@ -104,6 +104,3 @@ class GCNModel(Module):
         x = self.linear3(x)
 
         return x, sigmoid(x)
-
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        model = GCNModel(dataset).to(device)
