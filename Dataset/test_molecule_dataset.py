@@ -19,8 +19,15 @@ class TestMolecularGraphDataset(Dataset):
     @property
     def processed_file_names(self):
         processed_names = list()
+        load_dotenv(".env")
+        directory = os.getenv(self.fold_key)
 
-        for n in range(0, 35):
+        k = 0
+        for i in os.listdir(directory):
+            if "_" not in i:
+                k += 1
+
+        for n in range(0, k):
             processed_names.append(str(n)+'data.pt')
 
         return processed_names
@@ -38,6 +45,6 @@ class TestMolecularGraphDataset(Dataset):
 
     def get(self, idx):
         data = torch.load(osp.join(self.processed_dir,
-                          f'{idx}data.pt'))
+                          f'{idx}Data.pt'))
 
         return data

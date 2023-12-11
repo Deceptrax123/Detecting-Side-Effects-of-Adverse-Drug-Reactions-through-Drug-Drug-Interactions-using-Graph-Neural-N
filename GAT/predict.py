@@ -39,7 +39,7 @@ def predict():  # batch size 1 to get single instance predictions
         logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
 
         precision, topk_labels, score = topk_precision(
-            predictions, graphs.y.int(), k=5)
+            predictions, graphs.y.int(), k=3)
 
         top_symptoms = label_map_target(topk_labels)
 
@@ -57,7 +57,7 @@ if __name__ == '__main__':
         "graph_files")+"/val"+"/data/")
 
     params = {
-        "batch_size": 16,
+        "batch_size": 32,
         'shuffle': True
     }
 
@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     model.eval()
     model.load_state_dict(torch.load(
-        "GAT/weights/train_fold_12/head_1/model470.pth"))
+        "GAT/weights/activation/model220.pth"))
 
     # Get the Predictions with Scores
     prec, symps, p = predict()
