@@ -1,6 +1,7 @@
 import torch
 from torch_geometric.nn import global_mean_pool
 from torch.nn import ReLU, Linear, Dropout1d, BatchNorm1d
+from torch.nn.functional import sigmoid
 
 
 class MLPModel(torch.nn.Module):
@@ -39,5 +40,43 @@ class MLPModel(torch.nn.Module):
 
         self.linear7 = Linear(in_features=80, out_features=1317)
 
-    def forward(x, xs_batch, xt_batch):
-        pass
+    def forward(self, x, xs_batch, xt_batch):
+
+        xs_pooled = global_mean_pool(x.x_s, batch=xs_batch)
+        xt_pooled = global_mean_pool(x.x_t, batch=xt_batch)
+
+        combo = torch.add(xs_pooled, xt_pooled)
+
+        y = self.linear1(combo)
+        y = self.bn1(y)
+        y = self.relu1(y)
+        y = self.dp1(y)
+
+        y = self.linear2(y)
+        y = self.bn2(y)
+        y = self.relu2(y)
+        y = self.dp2(y)
+
+        y = self.linear3(y)
+        y = self.bn3(y)
+        y = self.relu3(y)
+        y = self.dp3(y)
+
+        y = self.linear4(y)
+        y = self.bn4(y)
+        y = self.relu4(y)
+        y = self.dp4(y)
+
+        y = self.linear5(y)
+        y = self.bn5(y)
+        y = self.relu5(y)
+        y = self.dp5(y)
+
+        y = self.linear6(y)
+        y = self.bn6(y)
+        y = self.relu6(y)
+        y = self.dp6(y)
+
+        y = self.linear7(y)
+
+        return y, sigmoid(y)

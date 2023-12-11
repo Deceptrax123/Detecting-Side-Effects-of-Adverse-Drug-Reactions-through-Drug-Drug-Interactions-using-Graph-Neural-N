@@ -36,10 +36,11 @@ def topk_precision(predictions, labels, k):
     return sum(precisions)/len(precisions), labs, sum(scores)/len(scores)
 
 
-# Weighted Accruacy
+# Weighted Accruacy and Micro f1
 def classification_metrics(predictions, labels):
     acc = MultilabelAccuracy(num_labels=1317, average='weighted')
+    f1 = MultilabelF1Score(num_labels=1317, average='micro')
 
     label_accuracy = acc(predictions, labels)
-
-    return label_accuracy
+    f1_micro = f1(predictions, labels)
+    return label_accuracy, f1_micro

@@ -5,7 +5,7 @@ from torch_geometric.graphgym import init_weights
 from Dataset.test_molecule_dataset import TestMolecularGraphDataset
 from Metrics.metrics import classification_metrics, topk_precision
 import torch
-from model import GATModel
+from model import MLPModel
 from torch.utils.data import ConcatDataset
 import torch.multiprocessing as tmp
 from torch import nn
@@ -35,7 +35,6 @@ def predict():  # batch size 1 to get single instance predictions
     precisions = list()
     labels = list()
     scores = list()
-    f1s = list()
     for step, graphs in enumerate(test_loader):
         logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
 
@@ -43,14 +42,12 @@ def predict():  # batch size 1 to get single instance predictions
             predictions, graphs.y.int(), k=1)
 
         top_symptoms = label_map_target(topk_labels)
-        _, p = classification_metrics(predictions, graphs.y)
 
         precisions.append(precision)
         labels.append(top_symptoms)
         scores.append(score)
-        f1s.append(p)
 
-    return sum(precisions)/len(precisions), labels, sum(scores)/len(scores), sum(f1s)/len(f1s)
+    return sum(precisions)/len(precisions), labels, sum(scores)/len(scores)
 
 
 if __name__ == '__main__':
@@ -66,15 +63,14 @@ if __name__ == '__main__':
 
     test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
 
-    model = GATModel(dataset=test_set)  # For tensor dimensions
+    model = MLPModel()  # For tensor dimensions
 
     model.eval()
     model.load_state_dict(torch.load(
-        "GAT/weights/activation/model730.pth"))
+        "MLP/weights/train_fold_12/head_1/model40.pth"))
 
     # Get the Predictions with Scores
-    prec, symps, p, f1 = predict()
+    prec, symps, p = predict()
     print("Symptoms: ", symps)
     print("Confidence: ", p)
     print("Precision@k: ", prec)
-    print("F1: ", f1)
