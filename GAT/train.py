@@ -44,6 +44,7 @@ def train_epoch():
     epoch_loss = 0
 
     accs = list()
+    f1_micro = list()
 
     for step, graphs in enumerate(train_loader):
 
@@ -65,20 +66,22 @@ def train_epoch():
                                       0)
 
         # Weighted accuracy if 0.5 is given as Hard Threshold
-        weighted_accuracy = classification_metrics(
+        weighted_accuracy, f1 = classification_metrics(
             preds_threshold.int(), graphs.y.int())
 
         accs.append(weighted_accuracy)
+        f1_micro.append(f1)
 
         del graphs
         del predictions
 
-    return epoch_loss/train_steps, sum(accs)/len(accs)
+    return epoch_loss/train_steps, sum(accs)/len(accs), sum(f1_micro)/len(f1_micro)
 
 
 def test_epoch():
     epoch_loss = 0
     accs = list()
+    f1_micro = list()
 
     for step, graphs in enumerate(test_loader):
         # weights = torch.from_numpy(compute_weights(graphs.y))
@@ -93,27 +96,28 @@ def test_epoch():
                                       0)
 
         # Compute Test Metrics
-        accuracy = classification_metrics(
+        accuracy, f1 = classification_metrics(
             preds_threshold.int(), graphs.y.int())
 
         accs.append(accuracy)
+        f1_micro.append(f1)
 
         del graphs
         del predictions
 
-    return epoch_loss/test_steps, sum(accs)/len(accs)
+    return epoch_loss/test_steps, sum(accs)/len(accs), sum(f1_micro)/len(f1_micro)
 
 
 def training_loop():
     for epoch in range(NUM_EPOCHS):
 
         model.train(True)
-        train_loss, train_acc = train_epoch()
+        train_loss, train_acc, train_f1 = train_epoch()
 
         model.eval()
 
         with torch.no_grad():
-            test_loss, test_acc = test_epoch()
+            test_loss, test_acc, test_f1 = test_epoch()
 
             print("Epoch {epoch}".format(epoch=epoch+1))
             print("Train Loss: {loss}".format(loss=train_loss))
@@ -121,20 +125,24 @@ def training_loop():
 
             print("Train Metrics")
             print("Train Accuracy:{acc}".format(acc=train_acc))
+            print("Train F1: {acc}".format(acc=train_f1))
 
             print("Test Metrics")
             print("Test Accuracy:{acc}".format(acc=test_acc))
+            print("Test F1: {acc}".format(acc=test_f1))
 
             wandb.log({
                 "Training Loss": train_loss,
                 "Testing Loss": test_loss,
                 "Train Accuracy": train_acc,
                 "Test Accuracy": test_acc,
+                "Test F1 micro": test_f1,
+                "Train F1": train_f1
 
             })
 
             if (epoch+221) % 10 == 0:
-                weights_path = "GAT/weights/activation/model{epoch}.pth".format(
+                weights_path = "GAT/weights/activation_elu/model{epoch}.pth".format(
                     epoch=epoch+221)
 
                 torch.save(model.state_dict(), weights_path)
@@ -146,8 +154,8 @@ if __name__ == '__main__':
 
     # Set the training and testing folds
     train_folds = ['fold1', 'fold2', 'fold3',
-                   'fold4', 'fold5', 'fold6', 'fold7']
-    test_folds = ['fold8']
+                   'fold4', 'fold5', 'fold6']
+    test_folds = ['fold7', 'fold8']
 
     params = {
         'batch_size': 32,
@@ -175,14 +183,16 @@ if __name__ == '__main__':
                                        + "/data/", start=30000)
     train_set6 = MolecularGraphDataset(fold_key=train_folds[5], root=os.getenv("graph_files")+"/fold6/"
                                        + "/data/", start=37500)
-    train_set7 = MolecularGraphDataset(fold_key=train_folds[6], root=os.getenv("graph_files")+"/fold7/"
-                                       + "/data/", start=45000)
 
-    test_set = MolecularGraphDataset(fold_key=test_folds[0], root=os.getenv(
+    test_set1 = MolecularGraphDataset(fold_key=test_folds[0], root=os.getenv("graph_files")+"/fold7/"
+                                      + "/data/", start=45000)
+    test_set2 = MolecularGraphDataset(fold_key=test_folds[1], root=os.getenv(
         "graph_files")+"/fold8"+"/data/", start=52500)
 
     train_set = ConcatDataset(
-        [train_set1, train_set2, train_set3, train_set4, train_set5, train_set6, train_set7])
+        [train_set1, train_set2, train_set3, train_set4, train_set5, train_set6])
+
+    test_set = ConcatDataset([test_set1, test_set2])
 
     train_loader = DataLoader(train_set, **params, follow_batch=['x_s', 'x_t'])
     test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
@@ -196,7 +206,7 @@ if __name__ == '__main__':
     # actual dataset is passed.
 
     NUM_EPOCHS = 10000
-    LR = 0.001
+    LR = 0.005
     BETAS = (0.9, 0.999)
 
     optimizer = torch.optim.Adam(params=model.parameters(), lr=LR, betas=BETAS)
