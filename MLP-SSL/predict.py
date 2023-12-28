@@ -5,7 +5,8 @@ from torch_geometric.graphgym import init_weights
 from Dataset.test_molecule_dataset import TestMolecularGraphDataset
 from Metrics.metrics import classification_metrics, topk_precision
 import torch
-from model import GATModel
+from encoder import DrugEncoder
+from model import SSLModel
 from torch.utils.data import ConcatDataset
 import torch.multiprocessing as tmp
 from torch import nn
@@ -68,11 +69,15 @@ if __name__ == '__main__':
 
     test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
 
-    model = GATModel(dataset=test_set)  # For tensor dimensions
+    # Get Models
+    r1_enc = DrugEncoder(in_features=test_set[0].x_s.size(1))
+    r2_enc = DrugEncoder(in_features=test_set[0].x_t.size(1))
+
+    model = SSLModel(r1_enc=r1_enc, r2_enc=r2_enc)  # For tensor dimensions
 
     model.eval()
     model.load_state_dict(torch.load(
-        "GAT/weights/model20.pth"))
+        "MLP-SSL/weights/model400.pth"))
 
     # Get the Predictions with Scores
     f1, cp = predict()
