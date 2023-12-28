@@ -45,6 +45,7 @@ def train_epoch():
 
     accs = list()
     f1_micro = list()
+    precs = list()
 
     for step, graphs in enumerate(train_loader):
 
@@ -66,22 +67,24 @@ def train_epoch():
                                       0)
 
         # Weighted accuracy if 0.5 is given as Hard Threshold
-        weighted_accuracy, f1 = classification_metrics(
+        weighted_accuracy, f1, precision = classification_metrics(
             preds_threshold.int(), graphs.y.int())
 
         accs.append(weighted_accuracy)
+        precs.append(precision)
         f1_micro.append(f1)
 
         del graphs
         del predictions
 
-    return epoch_loss/train_steps, sum(accs)/len(accs), sum(f1_micro)/len(f1_micro)
+    return epoch_loss/train_steps, sum(accs)/len(accs), sum(f1_micro)/len(f1_micro), sum(precs)/len(precs)
 
 
 def test_epoch():
     epoch_loss = 0
     accs = list()
     f1_micro = list()
+    precs = list()
 
     for step, graphs in enumerate(test_loader):
         # weights = torch.from_numpy(compute_weights(graphs.y))
@@ -96,28 +99,29 @@ def test_epoch():
                                       0)
 
         # Compute Test Metrics
-        accuracy, f1 = classification_metrics(
+        accuracy, f1, precision = classification_metrics(
             preds_threshold.int(), graphs.y.int())
 
         accs.append(accuracy)
         f1_micro.append(f1)
+        precs.append(precision)
 
         del graphs
         del predictions
 
-    return epoch_loss/test_steps, sum(accs)/len(accs), sum(f1_micro)/len(f1_micro)
+    return epoch_loss/test_steps, sum(accs)/len(accs), sum(f1_micro)/len(f1_micro), sum(precs)/len(precs)
 
 
 def training_loop():
     for epoch in range(NUM_EPOCHS):
 
         model.train(True)
-        train_loss, train_acc, train_f1 = train_epoch()
+        train_loss, train_acc, train_f1, prec_train = train_epoch()
 
         model.eval()
 
         with torch.no_grad():
-            test_loss, test_acc, test_f1 = test_epoch()
+            test_loss, test_acc, test_f1, prec_test = test_epoch()
 
             print("Epoch {epoch}".format(epoch=epoch+1))
             print("Train Loss: {loss}".format(loss=train_loss))
@@ -126,24 +130,28 @@ def training_loop():
             print("Train Metrics")
             print("Train Accuracy:{acc}".format(acc=train_acc))
             print("Train F1: {acc}".format(acc=train_f1))
+            print("Train Precision: {acc}".format(acc=prec_train))
 
             print("Test Metrics")
             print("Test Accuracy:{acc}".format(acc=test_acc))
             print("Test F1: {acc}".format(acc=test_f1))
+            print("Test Precision: {acc}".format(acc=prec_test))
 
             wandb.log({
                 "Training Loss": train_loss,
                 "Testing Loss": test_loss,
                 "Train Accuracy": train_acc,
                 "Test Accuracy": test_acc,
+                "Train Precision": prec_train,
+                "Test Precision": prec_test,
                 "Test F1 micro": test_f1,
                 "Train F1": train_f1
 
             })
 
-            if (epoch+221) % 10 == 0:
-                weights_path = "GAT/weights/activation_elu/model{epoch}.pth".format(
-                    epoch=epoch+221)
+            if (epoch+1) % 10 == 0:
+                weights_path = "GAT/weights/model{epoch}.pth".format(
+                    epoch=epoch+1)
 
                 torch.save(model.state_dict(), weights_path)
 
