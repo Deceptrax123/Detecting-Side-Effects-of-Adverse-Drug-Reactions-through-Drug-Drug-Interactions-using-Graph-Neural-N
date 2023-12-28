@@ -150,9 +150,9 @@ def training_loop():
 
             })
 
-            if (epoch+221) % 10 == 0:
-                weights_path = "GCN-SSL/weights/model{epoch}.pth".format(
-                    epoch=epoch+221)
+            if (epoch+1) % 10 == 0:
+                weights_path = "MLP-SSL/weights/model{epoch}.pth".format(
+                    epoch=epoch+1)
 
                 torch.save(model.state_dict(), weights_path)
 
