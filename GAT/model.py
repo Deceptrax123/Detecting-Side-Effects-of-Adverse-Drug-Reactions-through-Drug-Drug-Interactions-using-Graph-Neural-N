@@ -10,38 +10,38 @@ class GATModel(Module):
 
         # Reactant 1
         self.x_attention1 = GATv2Conv(in_channels=dataset[0].x_s.size(1), out_channels=dataset[0].x_s.size(1)//2,
-                                      edge_dim=9, heads=8, dropout=0.4)
+                                      edge_dim=9, heads=25000, dropout=0.4)
 
         self.lr1 = LeakyReLU()
 
         self.gn1 = GraphNorm(in_channels=(dataset[0].x_s.size(
-            1)//2)*8)
+            1)//2)*25000)
 
         self.x_attention2 = GATv2Conv(in_channels=(dataset[0].x_s.size(
-            1)//2)*8, out_channels=dataset[0].x_s.size(1)//4, edge_dim=9, dropout=0.4, heads=4)
+            1)//2)*25000, out_channels=dataset[0].x_s.size(1)//4, edge_dim=9, dropout=0.4, heads=12500)
         self.lr2 = LeakyReLU()
 
-        self.gn2 = GraphNorm(in_channels=dataset[0].x_s.size(1)//4*4)
+        self.gn2 = GraphNorm(in_channels=dataset[0].x_s.size(1)//4*12500)
 
         self.x_attention3 = GATv2Conv(in_channels=(
-            dataset[0].x_s.size(1)//4)*4, out_channels=dataset[0].x_s.size(1)//8, edge_dim=9, dropout=0.4)
+            dataset[0].x_s.size(1)//4)*12500, out_channels=dataset[0].x_s.size(1)//8, edge_dim=9, dropout=0.4)
         self.lr3 = LeakyReLU()
         self.gn3 = GraphNorm(in_channels=dataset[0].x_t.size(1)//8)
 
         # Reactant 2
         self.y_attention1 = GATv2Conv(in_channels=dataset[0].x_t.size(1), out_channels=dataset[0].x_t.size(1)//2,
-                                      edge_dim=9, heads=8, dropout=0.4)
+                                      edge_dim=9, heads=25000, dropout=0.4)
 
         self.gn4 = GraphNorm(in_channels=(dataset[0].x_t.size(
-            1)//2)*8)
+            1)//2)*25000)
         self.lr4 = LeakyReLU()
-        self.y_attention2 = GATv2Conv(in_channels=(dataset[0].x_t.size(1)//2)*8, out_channels=dataset[0].x_t.size(1)//4,
-                                      edge_dim=9, dropout=0.4, heads=4)
-        self.gn5 = GraphNorm(in_channels=dataset[0].x_s.size(1)//4*4)
+        self.y_attention2 = GATv2Conv(in_channels=(dataset[0].x_t.size(1)//2)*25000, out_channels=dataset[0].x_t.size(1)//4,
+                                      edge_dim=9, dropout=0.4, heads=12500)
+        self.gn5 = GraphNorm(in_channels=dataset[0].x_s.size(1)//4*12500)
         self.lr5 = LeakyReLU()
 
         self.y_attention3 = GATv2Conv(in_channels=(
-            dataset[0].x_t.size(1)//4)*4, out_channels=dataset[0].x_t.size(1)//8, edge_dim=9, dropout=0.4)
+            dataset[0].x_t.size(1)//4)*12500, out_channels=dataset[0].x_t.size(1)//8, edge_dim=9, dropout=0.4)
         self.gn6 = GraphNorm(in_channels=dataset[0].x_t.size(1)//8)
         self.lr6 = LeakyReLU()
 
