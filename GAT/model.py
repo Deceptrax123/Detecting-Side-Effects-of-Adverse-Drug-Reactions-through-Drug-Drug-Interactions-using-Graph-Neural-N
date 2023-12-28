@@ -75,7 +75,7 @@ class GATModel(Module):
         # Classifier
         x = self.linear1(xs)
         x = self.bn1(x)
-        x = self.lr7(x)
+
         x = self.linear2(x)
 
         return x, sigmoid(x)
