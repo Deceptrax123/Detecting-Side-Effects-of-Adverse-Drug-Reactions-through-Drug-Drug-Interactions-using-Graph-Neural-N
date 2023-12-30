@@ -6,7 +6,7 @@ from Dataset.test_molecule_dataset import TestMolecularGraphDataset
 from Metrics.metrics_test import classification_metrics
 import torch
 from model import SSLModel
-from encoder import SpectralDrugEncoder
+from encoder import DrugEncoder
 from torch.utils.data import ConcatDataset
 import torch.multiprocessing as tmp
 from torch import nn
@@ -72,14 +72,14 @@ if __name__ == '__main__':
     test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
 
     # Get Models
-    r1_enc = SpectralDrugEncoder(in_features=test_set[0].x_s.size(1))
-    r2_enc = SpectralDrugEncoder(in_features=test_set[0].x_t.size(1))
+    r1_enc = DrugEncoder(in_features=test_set[0].x_s.size(1))
+    r2_enc = DrugEncoder(in_features=test_set[0].x_t.size(1))
 
     model = SSLModel(r1_enc=r1_enc, r2_enc=r2_enc)
 
     model.eval()
     model.load_state_dict(torch.load(
-        "Cheb-ssl/weights/model70.pth"))
+        "GCN-SSL/weights/model410.pth"))
 
     # Get the Predictions with Scores
     acc, _, cp, auroc = predict()
