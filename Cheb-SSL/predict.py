@@ -3,9 +3,10 @@ from Dataset.Molecule_dataset import MolecularGraphDataset
 from torch_geometric.loader import DataLoader
 from torch_geometric.graphgym import init_weights
 from Dataset.test_molecule_dataset import TestMolecularGraphDataset
-from Metrics.metrics import classification_metrics, topk_precision
+from Metrics.metrics_test import classification_metrics
 import torch
-from model import GATModel
+from model import SSLModel
+from encoder import SpectralDrugEncoder
 from torch.utils.data import ConcatDataset
 import torch.multiprocessing as tmp
 from torch import nn
@@ -32,11 +33,10 @@ def label_map_target(labels):  # Obtained from dataset analysis
 
 def predict():  # batch size 1 to get single instance predictions
 
-    precisions = list()
-    labels = list()
-    scores = list()
     f1s = list()
     over_precisions = list()
+    aurocs = list()
+    accs = list()
     for step, graphs in enumerate(test_loader):
         logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
 
@@ -44,17 +44,18 @@ def predict():  # batch size 1 to get single instance predictions
         # predictions, graphs.y.int(), k=1)
 
         # top_symptoms = label_map_target(topk_labels)
-        predictions = torch.tensor(torch.where(
-            predictions > 0.5, 1, 0), dtype=torch.int32)
-        _, f, p = classification_metrics(predictions, graphs.y.int())
+
+        acc, f, p, auroc = classification_metrics(predictions, graphs.y.int())
 
         # precisions.append(precision)
         # labels.append(top_symptoms)
         # scores.append(score)
+        accs.append(acc)
         f1s.append(f)
         over_precisions.append(p)
+        aurocs.append(auroc)
 
-    return sum(f1s)/len(f1s), sum(over_precisions)/len(over_precisions)
+    return sum(accs)/len(accs), sum(f1s)/len(f1s), sum(over_precisions)/len(over_precisions), sum(aurocs)/len(aurocs)
 
 
 if __name__ == '__main__':
@@ -70,14 +71,19 @@ if __name__ == '__main__':
 
     test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
 
-    model = GATModel(dataset=test_set)  # For tensor dimensions
+    # Get Models
+    r1_enc = SpectralDrugEncoder(in_features=test_set[0].x_s.size(1))
+    r2_enc = SpectralDrugEncoder(in_features=test_set[0].x_t.size(1))
+
+    model = SSLModel(r1_enc=r1_enc, r2_enc=r2_enc)
 
     model.eval()
     model.load_state_dict(torch.load(
-        "GAT/weights/model20.pth"))
+        "Cheb-ssl/weights/model30.pth"))
 
     # Get the Predictions with Scores
-    f1, cp = predict()
+    acc, _, cp, auroc = predict()
 
     print("Overall Precision: ", cp)
-    print("Overall F1: ", f1)
+    print("Area under ROC: ", auroc)
+    print("Accuracy: ", acc)
