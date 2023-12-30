@@ -37,6 +37,7 @@ def predict():  # batch size 1 to get single instance predictions
     over_precisions = list()
     aurocs = list()
     accs = list()
+    recs = list()
     for step, graphs in enumerate(test_loader):
         logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
 
@@ -45,7 +46,8 @@ def predict():  # batch size 1 to get single instance predictions
 
         # top_symptoms = label_map_target(topk_labels)
 
-        acc, f, p, auroc = classification_metrics(predictions, graphs.y.int())
+        acc, f, p, auroc, rec = classification_metrics(
+            predictions, graphs.y.int())
 
         # precisions.append(precision)
         # labels.append(top_symptoms)
@@ -54,8 +56,9 @@ def predict():  # batch size 1 to get single instance predictions
         f1s.append(f)
         over_precisions.append(p)
         aurocs.append(auroc)
+        recs.append(rec)
 
-    return sum(accs)/len(accs), sum(f1s)/len(f1s), sum(over_precisions)/len(over_precisions), sum(aurocs)/len(aurocs)
+    return sum(accs)/len(accs), sum(f1s)/len(f1s), sum(over_precisions)/len(over_precisions), sum(aurocs)/len(aurocs), sum(recs)/len(recs)
 
 
 if __name__ == '__main__':
@@ -82,8 +85,9 @@ if __name__ == '__main__':
         "Cheb-ssl/weights/model70.pth"))
 
     # Get the Predictions with Scores
-    acc, _, cp, auroc = predict()
+    acc, _, cp, auroc, recall = predict()
 
     print("Overall Precision: ", cp)
     print("Area under ROC: ", auroc)
     print("Accuracy: ", acc)
+    print("Recall: ", recall)

@@ -14,32 +14,6 @@ import gc
 import wandb
 
 
-def compute_weights(y_sample):
-    # get counts of 1
-    labels = y_sample.size(1)
-
-    counts = list()
-    for i in range(labels):
-        region = y_sample[:, i]
-
-        ones = (region == 1.).sum()
-
-        if ones == 0:
-            ones = np.inf
-
-        counts.append(ones)
-
-    total_features = y_sample.size(0)*y_sample.size(1)
-
-    counts = np.array(counts)
-    weights = counts/total_features
-
-    inverse = 1/weights
-    inverse = inverse.astype(np.float32)
-
-    return inverse
-
-
 def train_epoch():
     epoch_loss = 0
 
@@ -154,6 +128,7 @@ def training_loop():
                     epoch=epoch+1)
 
                 torch.save(model.state_dict(), weights_path)
+        scheduler.step(test_loss)
 
 
 if __name__ == '__main__':
@@ -205,19 +180,16 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_set, **params, follow_batch=['x_s', 'x_t'])
     test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
 
-    # The dataset is only for feature shape reference, no
+    # The dataset is only for feature shape reference
     model = GATModel(dataset=train_set)
-
-    for m in model.modules():
-        init_weights(m)
-
-    # actual dataset is passed.
 
     NUM_EPOCHS = 10000
     LR = 0.005
     BETAS = (0.9, 0.999)
 
     optimizer = torch.optim.Adam(params=model.parameters(), lr=LR, betas=BETAS)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, 'min', verbose=True)
 
     train_steps = (len(train_set)+params['batch_size']-1)//params['batch_size']
     test_steps = (len(test_set)+params['batch_size']-1)//params['batch_size']
