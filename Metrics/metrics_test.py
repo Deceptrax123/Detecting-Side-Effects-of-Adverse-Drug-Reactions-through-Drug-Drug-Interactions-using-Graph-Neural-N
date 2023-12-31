@@ -7,10 +7,12 @@ import torch
 
 def classification_metrics(predictions, labels):
     acc = MultilabelAccuracy(num_labels=1317, average='weighted')
-    f1 = MultilabelF1Score(num_labels=1317, average='micro')
-    precision = MultilabelPrecision(num_labels=1317, average='micro')
+    f1 = MultilabelF1Score(num_labels=1317, average='micro', threshold=0.5)
+    precision = MultilabelPrecision(
+        num_labels=1317, average='micro', threshold=0.5)
     area = MultilabelAUROC(num_labels=1317, average='weighted')
-    recall = MultilabelRecall(num_labels=1317, average='micro')
+    recall = MultilabelRecall(
+        num_labels=1317, average='micro', threshold=0.15)
 
     label_accuracy = acc(predictions, labels)
     f1_micro = f1(predictions, labels)
