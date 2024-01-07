@@ -7,7 +7,6 @@ from model import GCNModel
 from torch.utils.data import ConcatDataset
 import torch.multiprocessing as tmp
 from torch import nn
-from GCN.initialize import initialize
 from dotenv import load_dotenv
 import os
 import numpy as np
@@ -15,43 +14,18 @@ import gc
 import wandb
 
 
-def compute_weights(y_sample):
-    # get counts of 1
-    labels = y_sample.size(1)
-
-    counts = list()
-    for i in range(labels):
-        region = y_sample[:, i]
-
-        ones = (region == 1.).sum()
-
-        if ones == 0:
-            ones = np.inf
-
-        counts.append(ones)
-
-    total_features = y_sample.size(0)*y_sample.size(1)
-
-    counts = np.array(counts)
-    weights = counts/total_features
-
-    inverse = 1/weights
-    inverse = inverse.astype(np.float32)
-
-    return inverse
-
-
 def train_epoch():
     epoch_loss = 0
 
     accs = list()
+    f1_micro = list()
+    precs = list()
 
     for step, graphs in enumerate(train_loader):
-        graphs = graphs.to(device)
 
         # weights = torch.from_numpy(compute_weights(graphs.y))
-        logits, predictions = model(
-            graphs, graphs.x_s_batch, graphs.x_t_batch, device)
+        graphs=graphs.to(device=device)
+        logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
 
         # Train Model
         model.zero_grad()
@@ -66,30 +40,31 @@ def train_epoch():
 
         preds_threshold = torch.where(predictions > 0.5, 1,
                                       0)
-        predictions = predictions.cpu()  # shifted to cpu
-        labels_cpu = graphs.y.int().cpu()
+
         # Weighted accuracy if 0.5 is given as Hard Threshold
-        weighted_accuracy = classification_metrics(
-            predictions, graphs.y.int().cpu())
-        # preds_threshold.int(), graphs.y.int())
+        weighted_accuracy, f1, precision = classification_metrics(
+            preds_threshold.int(), graphs.y.int())
 
         accs.append(weighted_accuracy)
+        precs.append(precision)
+        f1_micro.append(f1)
 
         del graphs
         del predictions
 
-    return epoch_loss/train_steps, sum(accs)/len(accs)
+    return epoch_loss/train_steps, sum(accs)/len(accs), sum(f1_micro)/len(f1_micro), sum(precs)/len(precs)
 
 
 def test_epoch():
     epoch_loss = 0
     accs = list()
+    f1_micro = list()
+    precs = list()
 
     for step, graphs in enumerate(test_loader):
         # weights = torch.from_numpy(compute_weights(graphs.y))
-        graphs = graphs.to(device)
-        logits, predictions = model(
-            graphs, graphs.x_s_batch, graphs.x_t_batch, device)
+        graphs=graphs.to(device=device)
+        logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
 
         loss_function = nn.BCEWithLogitsLoss()
         loss = loss_function(logits, graphs.y)
@@ -99,30 +74,30 @@ def test_epoch():
         preds_threshold = torch.where(predictions > 0.5, 1,
                                       0)
 
-        predictions = predictions.cpu()  # Shifting predictions to cpu
-
         # Compute Test Metrics
-        accuracy = classification_metrics(predictions, graphs.y.int().cpu())
-        # preds_threshold.int(), graphs.y.int())
+        accuracy, f1, precision = classification_metrics(
+            preds_threshold.int(), graphs.y.int())
 
         accs.append(accuracy)
+        f1_micro.append(f1)
+        precs.append(precision)
 
         del graphs
         del predictions
 
-    return epoch_loss/test_steps, sum(accs)/len(accs)
+    return epoch_loss/test_steps, sum(accs)/len(accs), sum(f1_micro)/len(f1_micro), sum(precs)/len(precs)
 
 
 def training_loop():
     for epoch in range(NUM_EPOCHS):
 
         model.train(True)
-        train_loss, train_acc = train_epoch()
+        train_loss, train_acc, train_f1, prec_train = train_epoch()
 
         model.eval()
 
         with torch.no_grad():
-            test_loss, test_acc = test_epoch()
+            test_loss, test_acc, test_f1, prec_test = test_epoch()
 
             print("Epoch {epoch}".format(epoch=epoch+1))
             print("Train Loss: {loss}".format(loss=train_loss))
@@ -130,31 +105,32 @@ def training_loop():
 
             print("Train Metrics")
             print("Train Accuracy:{acc}".format(acc=train_acc))
+            print("Train F1: {acc}".format(acc=train_f1))
+            print("Train Precision: {acc}".format(acc=prec_train))
 
             print("Test Metrics")
             print("Test Accuracy:{acc}".format(acc=test_acc))
+            print("Test F1: {acc}".format(acc=test_f1))
+            print("Test Precision: {acc}".format(acc=prec_test))
 
             wandb.log({
                 "Training Loss": train_loss,
                 "Testing Loss": test_loss,
                 "Train Accuracy": train_acc,
                 "Test Accuracy": test_acc,
+                "Train Precision": prec_train,
+                "Test Precision": prec_test,
+                "Test F1 micro": test_f1,
+                "Train F1": train_f1
 
             })
 
-            # if (epoch+1) % 10 == 0:
-            # weights_path = "GCN/weights/activation/model{epoch}.pth".format(
-            #  epoch=epoch+1)
+            if (epoch+1) % 10 == 0:
+                weights_path = "GCN/weights/gcn/model{epoch}.pth".format(
+                    epoch=epoch+1)
 
-            # torch.save(model.state_dict(), weights_path)
-
-            if (epoch + 1) % 10 == 0:
-                weights_dir = "GCN/weights/train_fold_12/head_1/"
-                # Create directory if it doesn't exist
-                os.makedirs(weights_dir, exist_ok=True)
-                weights_path = os.path.join(
-                    weights_dir, f"model{epoch + 1}.pth")
                 torch.save(model.state_dict(), weights_path)
+        scheduler.step(test_loss)
 
 
 if __name__ == '__main__':
@@ -163,15 +139,14 @@ if __name__ == '__main__':
 
     # Set the training and testing folds
     train_folds = ['fold1', 'fold2', 'fold3',
-                   'fold4', 'fold5', 'fold6', 'fold7']
-    test_folds = ['fold8']
+                   'fold4', 'fold5', 'fold6']
+    test_folds = ['fold7', 'fold8']
 
     params = {
-        'batch_size': 32,
+        'batch_size': 8,
         'shuffle': True,
         'num_workers': 0
     }
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     wandb.init(
         project="Drug Interaction",
@@ -193,31 +168,31 @@ if __name__ == '__main__':
                                        + "/data/", start=30000)
     train_set6 = MolecularGraphDataset(fold_key=train_folds[5], root=os.getenv("graph_files")+"/fold6/"
                                        + "/data/", start=37500)
-    train_set7 = MolecularGraphDataset(fold_key=train_folds[6], root=os.getenv("graph_files")+"/fold7/"
-                                       + "/data/", start=45000)
 
-    test_set = MolecularGraphDataset(fold_key=test_folds[0], root=os.getenv(
+    test_set1 = MolecularGraphDataset(fold_key=test_folds[0], root=os.getenv("graph_files")+"/fold7/"
+                                      + "/data/", start=45000)
+    test_set2 = MolecularGraphDataset(fold_key=test_folds[1], root=os.getenv(
         "graph_files")+"/fold8"+"/data/", start=52500)
 
     train_set = ConcatDataset(
-        [train_set1, train_set2, train_set3, train_set4, train_set5, train_set6, train_set7])
+        [train_set1, train_set2, train_set3, train_set4, train_set5, train_set6])
+
+    test_set = ConcatDataset([test_set1, test_set2])
 
     train_loader = DataLoader(train_set, **params, follow_batch=['x_s', 'x_t'])
     test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
 
-    # The dataset is only for feature shape reference, no
-    model = GCNModel(dataset=train_set).to(device)
-    for m in model.modules():
-        init_weights(m)
+    # The dataset is only for feature shape reference
+    device=torch.device("cuda")
+    model = GCNModel(dataset=train_set).to(device=device)
 
-    model.apply(initialize)  # Initialize gcn layers with He Norm.
-
-    # actual dataset is passed.
-    NUM_EPOCHS = 1000
-    LR = 0.001
+    NUM_EPOCHS = 10000
+    LR = 0.005
     BETAS = (0.9, 0.999)
 
     optimizer = torch.optim.Adam(params=model.parameters(), lr=LR, betas=BETAS)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, 'min', verbose=True)
 
     train_steps = (len(train_set)+params['batch_size']-1)//params['batch_size']
     test_steps = (len(test_set)+params['batch_size']-1)//params['batch_size']

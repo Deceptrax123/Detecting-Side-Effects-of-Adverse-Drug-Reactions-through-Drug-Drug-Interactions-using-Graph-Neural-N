@@ -12,7 +12,7 @@ def classification_metrics(predictions, labels):
         num_labels=1317, average='micro', threshold=0.5)
     area = MultilabelAUROC(num_labels=1317, average='weighted')
     recall = MultilabelRecall(
-        num_labels=1317, average='micro', threshold=0.15)
+        num_labels=1317, average='micro', threshold=0.5)
 
     label_accuracy = acc(predictions, labels)
     f1_micro = f1(predictions, labels)

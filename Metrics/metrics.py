@@ -38,9 +38,9 @@ def topk_precision(predictions, labels, k):
 
 # Weighted Accruacy and Micro f1
 def classification_metrics(predictions, labels):
-    acc = MultilabelAccuracy(num_labels=1317, average='weighted')
-    f1 = MultilabelF1Score(num_labels=1317, average='micro')
-    precision = MultilabelPrecision(num_labels=1317, average='micro')
+    acc = MultilabelAccuracy(num_labels=1317, average='weighted').to(device=torch.device("cuda"))
+    f1 = MultilabelF1Score(num_labels=1317, average='micro').to(device=torch.device("cuda"))
+    precision = MultilabelPrecision(num_labels=1317, average='micro').to(device=torch.device("cuda"))
 
     label_accuracy = acc(predictions, labels)
     f1_micro = f1(predictions, labels)
