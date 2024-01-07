@@ -19,6 +19,9 @@ data/
 #Weights
 weights/
 
+#.pth files
+*.pth
+
 # Thumbnails
 ._*
 

@@ -3,7 +3,8 @@ from torch_geometric.graphgym import init_weights
 from Dataset.Molecule_dataset import MolecularGraphDataset
 from Metrics.metrics import classification_metrics, topk_precision
 import torch
-from model import GATModel
+from model import SSLModel
+from encoder import SpectralDrugEncoder
 from torch.utils.data import ConcatDataset
 import torch.multiprocessing as tmp
 from torch import nn
@@ -45,8 +46,8 @@ def train_epoch():
             preds_threshold.int(), graphs.y.int())
 
         accs.append(weighted_accuracy)
-        precs.append(precision)
         f1_micro.append(f1)
+        precs.append(precision)
 
         del graphs
         del predictions
@@ -90,12 +91,12 @@ def training_loop():
     for epoch in range(NUM_EPOCHS):
 
         model.train(True)
-        train_loss, train_acc, train_f1, prec_train = train_epoch()
+        train_loss, train_acc, train_f1, train_precision = train_epoch()
 
         model.eval()
 
         with torch.no_grad():
-            test_loss, test_acc, test_f1, prec_test = test_epoch()
+            test_loss, test_acc, test_f1, test_precision = test_epoch()
 
             print("Epoch {epoch}".format(epoch=epoch+1))
             print("Train Loss: {loss}".format(loss=train_loss))
@@ -104,30 +105,32 @@ def training_loop():
             print("Train Metrics")
             print("Train Accuracy:{acc}".format(acc=train_acc))
             print("Train F1: {acc}".format(acc=train_f1))
-            print("Train Precision: {acc}".format(acc=prec_train))
+            print("Train Precision: {acc}".format(acc=train_precision))
 
             print("Test Metrics")
             print("Test Accuracy:{acc}".format(acc=test_acc))
             print("Test F1: {acc}".format(acc=test_f1))
-            print("Test Precision: {acc}".format(acc=prec_test))
+            print("Test Precision: {acc}".format(acc=test_precision))
 
             wandb.log({
                 "Training Loss": train_loss,
                 "Testing Loss": test_loss,
                 "Train Accuracy": train_acc,
+                "Train Precision": train_precision,
+                "Test Precision": test_precision,
                 "Test Accuracy": test_acc,
-                "Train Precision": prec_train,
-                "Test Precision": prec_test,
                 "Test F1 micro": test_f1,
                 "Train F1": train_f1
 
             })
 
             if (epoch+1) % 10 == 0:
-                weights_path = "GAT/weights/model{epoch}.pth".format(
+                weights_path = "Cheb-SSL/weights/model{epoch}.pth".format(
                     epoch=epoch+1)
 
                 torch.save(model.state_dict(), weights_path)
+
+        # Update learning rate
         scheduler.step(test_loss)
 
 
@@ -141,7 +144,7 @@ if __name__ == '__main__':
     test_folds = ['fold7', 'fold8']
 
     params = {
-        'batch_size': 8,
+        'batch_size': 32,
         'shuffle': True,
         'num_workers': 0
     }
@@ -180,8 +183,14 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_set, **params, follow_batch=['x_s', 'x_t'])
     test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
 
-    # The dataset is only for feature shape reference
-    model = GATModel(dataset=train_set)
+    # Get Models
+    r1_enc = SpectralDrugEncoder(in_features=train_set[0].x_s.size(1))
+    r1_enc.load_state_dict(torch.load("Cheb-SSL/r1_encoder.pth"))
+
+    r2_enc = SpectralDrugEncoder(in_features=train_set[0].x_t.size(1))
+    r2_enc.load_state_dict(torch.load("Cheb-SSL/r2_encoder.pth"))
+
+    model = SSLModel(r1_enc=r1_enc, r2_enc=r2_enc)
 
     NUM_EPOCHS = 10000
     LR = 0.005
@@ -189,7 +198,7 @@ if __name__ == '__main__':
 
     optimizer = torch.optim.Adam(params=model.parameters(), lr=LR, betas=BETAS)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, 'min', verbose=True)
+        optimizer=optimizer, mode='min')
 
     train_steps = (len(train_set)+params['batch_size']-1)//params['batch_size']
     test_steps = (len(test_set)+params['batch_size']-1)//params['batch_size']
