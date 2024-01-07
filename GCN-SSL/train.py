@@ -3,7 +3,8 @@ from torch_geometric.graphgym import init_weights
 from Dataset.Molecule_dataset import MolecularGraphDataset
 from Metrics.metrics import classification_metrics, topk_precision
 import torch
-from model import GATModel
+from model import SSLModel
+from encoder import DrugEncoder
 from torch.utils.data import ConcatDataset
 import torch.multiprocessing as tmp
 from torch import nn
@@ -14,11 +15,38 @@ import gc
 import wandb
 
 
+def compute_weights(y_sample):
+    # get counts of 1
+    labels = y_sample.size(1)
+
+    counts = list()
+    for i in range(labels):
+        region = y_sample[:, i]
+
+        ones = (region == 1.).sum()
+
+        if ones == 0:
+            ones = np.inf
+
+        counts.append(ones)
+
+    total_features = y_sample.size(0)*y_sample.size(1)
+
+    counts = np.array(counts)
+    weights = counts/total_features
+
+    inverse = 1/weights
+    inverse = inverse.astype(np.float32)
+
+    return inverse
+
+
 def train_epoch():
     epoch_loss = 0
 
     accs = list()
-    precisions = list()
+    f1_micro = list()
+    precs = list()
 
     for step, graphs in enumerate(train_loader):
 
@@ -40,20 +68,24 @@ def train_epoch():
                                       0)
 
         # Weighted accuracy if 0.5 is given as Hard Threshold
-        weighted_accuracy = classification_metrics(
+        weighted_accuracy, f1, precision = classification_metrics(
             preds_threshold.int(), graphs.y.int())
 
         accs.append(weighted_accuracy)
+        f1_micro.append(f1)
+        precs.append(precision)
 
         del graphs
         del predictions
 
-    return epoch_loss/train_steps, sum(accs)/len(accs)
+    return epoch_loss/train_steps, sum(accs)/len(accs), sum(f1_micro)/len(f1_micro), sum(precs)/len(precs)
 
 
 def test_epoch():
     epoch_loss = 0
     accs = list()
+    f1_micro = list()
+    precs = list()
 
     for step, graphs in enumerate(test_loader):
         # weights = torch.from_numpy(compute_weights(graphs.y))
@@ -68,27 +100,29 @@ def test_epoch():
                                       0)
 
         # Compute Test Metrics
-        accuracy = classification_metrics(
+        accuracy, f1, precision = classification_metrics(
             preds_threshold.int(), graphs.y.int())
 
         accs.append(accuracy)
+        f1_micro.append(f1)
+        precs.append(precision)
 
         del graphs
         del predictions
 
-    return epoch_loss/test_steps, sum(accs)/len(accs)
+    return epoch_loss/test_steps, sum(accs)/len(accs), sum(f1_micro)/len(f1_micro), sum(precs)/len(precs)
 
 
 def training_loop():
     for epoch in range(NUM_EPOCHS):
 
         model.train(True)
-        train_loss, train_acc = train_epoch()
+        train_loss, train_acc, train_f1, train_precision = train_epoch()
 
         model.eval()
 
         with torch.no_grad():
-            test_loss, test_acc = test_epoch()
+            test_loss, test_acc, test_f1, test_precision = test_epoch()
 
             print("Epoch {epoch}".format(epoch=epoch+1))
             print("Train Loss: {loss}".format(loss=train_loss))
@@ -96,22 +130,34 @@ def training_loop():
 
             print("Train Metrics")
             print("Train Accuracy:{acc}".format(acc=train_acc))
+            print("Train F1: {acc}".format(acc=train_f1))
+            print("Train Precision: {acc}".format(acc=train_precision))
 
             print("Test Metrics")
             print("Test Accuracy:{acc}".format(acc=test_acc))
+            print("Test F1: {acc}".format(acc=test_f1))
+            print("Test Precision: {acc}".format(acc=test_precision))
 
             wandb.log({
                 "Training Loss": train_loss,
                 "Testing Loss": test_loss,
                 "Train Accuracy": train_acc,
+                "Train Precision": train_precision,
+                "Test Precision": test_precision,
                 "Test Accuracy": test_acc,
+                "Test F1 micro": test_f1,
+                "Train F1": train_f1
+
             })
 
             if (epoch+1) % 10 == 0:
-                weights_path = "GAT/weights/train_fold_12/head_1/model{epoch}.pth".format(
+                weights_path = "MLP-SSL/weights/model{epoch}.pth".format(
                     epoch=epoch+1)
 
                 torch.save(model.state_dict(), weights_path)
+
+        # Update learning rate
+        # scheduler.step()
 
 
 if __name__ == '__main__':
@@ -120,8 +166,8 @@ if __name__ == '__main__':
 
     # Set the training and testing folds
     train_folds = ['fold1', 'fold2', 'fold3',
-                   'fold4', 'fold5', 'fold6', 'fold7']
-    test_folds = ['fold8']
+                   'fold4', 'fold5', 'fold6']
+    test_folds = ['fold7', 'fold8']
 
     params = {
         'batch_size': 32,
@@ -149,31 +195,35 @@ if __name__ == '__main__':
                                        + "/data/", start=30000)
     train_set6 = MolecularGraphDataset(fold_key=train_folds[5], root=os.getenv("graph_files")+"/fold6/"
                                        + "/data/", start=37500)
-    train_set7 = MolecularGraphDataset(fold_key=train_folds[6], root=os.getenv("graph_files")+"/fold7/"
-                                       + "/data/", start=45000)
 
-    test_set = MolecularGraphDataset(fold_key=test_folds[0], root=os.getenv(
+    test_set1 = MolecularGraphDataset(fold_key=test_folds[0], root=os.getenv("graph_files")+"/fold7/"
+                                      + "/data/", start=45000)
+    test_set2 = MolecularGraphDataset(fold_key=test_folds[1], root=os.getenv(
         "graph_files")+"/fold8"+"/data/", start=52500)
 
     train_set = ConcatDataset(
-        [train_set1, train_set2, train_set3, train_set4, train_set5, train_set6, train_set7])
+        [train_set1, train_set2, train_set3, train_set4, train_set5, train_set6])
+
+    test_set = ConcatDataset([test_set1, test_set2])
 
     train_loader = DataLoader(train_set, **params, follow_batch=['x_s', 'x_t'])
     test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
 
-    # The dataset is only for feature shape reference, no
-    model = GATModel(dataset=train_set)
+    # Get Models
+    r1_enc = DrugEncoder(in_features=train_set[0].x_s.size(1))
+    r1_enc.load_state_dict(torch.load("GCN-SSL/r1_encoder.pth"))
 
-    for m in model.modules():
-        init_weights(m)
+    r2_enc = DrugEncoder(in_features=train_set[0].x_t.size(1))
+    r2_enc.load_state_dict(torch.load("GCN-SSL/r2_encoder.pth"))
 
-    # actual dataset is passed.
+    model = SSLModel(r1_enc=r1_enc, r2_enc=r2_enc)
 
     NUM_EPOCHS = 10000
-    LR = 0.001
+    LR = 0.005
     BETAS = (0.9, 0.999)
 
     optimizer = torch.optim.Adam(params=model.parameters(), lr=LR, betas=BETAS)
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer)
 
     train_steps = (len(train_set)+params['batch_size']-1)//params['batch_size']
     test_steps = (len(test_set)+params['batch_size']-1)//params['batch_size']
