@@ -1,10 +1,29 @@
 # Modelling Drug-Target Interaction to predict side effects using Graph Neural Networks
 
-
 ## About
-We create graph based neural networks of various types including self-supervised pretraining of models to predict side effects of a drug and target interaction and achieve state of the art results on various performance metrics.
+We create graph neural networks of various types including self-supervised pretraining of models to predict side effects of a drug and target interaction, further we achieve state of the art results on various performance metrics.
+
+## Dataset
+TwoSides Dataset of TDC was employed for model training and testing. The code for the dataloader and batching policy can be found <a href="https://github.com/Deceptrax123/GNN-Dataloader-For-Chemical-Interaction-Applications">here</a>.
+
+## Models
+### Trained with randomly initialized weights
+- Graph Convolution
+- Graph Attention
+- Chebyshev Convolutions
+- SAGE Convolution
+  
+### Fine-tuned after SSL Pretraining using Variational Autoencoders
+<a href="https://github.com/Deceptrax123/Graph-VAE">Link</a> to code and implementation of pre-training stages 
+- Graph Convolution
+- Chebyshev Convolution
+
+### Ensemble of weights two pre-trained models
+
+- Pretrained GCN Models  and Pretrained Chebyshev Convolution Models
 
 ## Contributors
+Our Contributors to the research, model planning and creation, management and development
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
