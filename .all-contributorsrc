@@ -9,15 +9,6 @@
   "contributors": [
     {
 <<<<<<< HEAD
-      "login": "Varenya007",
-      "name": "Varenya",
-      "avatar_url": "https://avatars.githubusercontent.com/u/90688425?v=4",
-      "profile": "https://github.com/Varenya007",
-      "contributions": [
-        "data",
-        "research",
-        "projectManagement"
-=======
       "login": "Deceptrax123",
       "name": "Srinitish S",
       "avatar_url": "https://avatars.githubusercontent.com/u/87447180?v=4",
@@ -26,10 +17,21 @@
         "data",
         "code",
         "research",
-        "maintenance"
->>>>>>> all-contributors/add-Deceptrax123
+        "projectManagement"
       ]
-    }
+    },
+    {
+      <<<<<<< HEAD
+      "login": "Varenya007",
+      "name": "Varenya",
+      "avatar_url": "https://avatars.githubusercontent.com/u/90688425?v=4",
+      "profile": "https://github.com/Varenya007",
+      "contributions": [
+        "data",
+        "research",
+        "projectManagement"
+      ]
+    },
   ],
   "contributorsPerLine": 7,
   "skipCi": true,
