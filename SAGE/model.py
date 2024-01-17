@@ -1,7 +1,7 @@
 import torch
 from torch_geometric.nn import global_mean_pool, global_max_pool, GraphNorm, SAGEConv
 from torch.nn import Module, BatchNorm1d, Linear, ReLU
-from torch.nn.functional import sigmoid,relu
+from torch.nn.functional import sigmoid, relu
 
 
 class SAGEConvModel(Module):
@@ -10,19 +10,23 @@ class SAGEConvModel(Module):
 
         # Reactant 1
         self.x_layer1 = SAGEConv(in_channels=dataset[0].x_s.size(
-            1), out_channels=128,aggregator_type='gcn')
+            1), out_channels=128)
 
-        self.x_layer2 = SAGEConv(in_channels=128, out_channels=256,aggregator_type='gcn')
+        self.x_layer2 = SAGEConv(
+            in_channels=128, out_channels=256)
 
-        self.x_layer3 = SAGEConv(in_channels=256, out_channels=512,aggregator_type='gcn')
+        self.x_layer3 = SAGEConv(
+            in_channels=256, out_channels=512)
 
         # Reactant 2
         self.y_layer1 = SAGEConv(in_channels=dataset[0].x_s.size(
-            1), out_channels=128,aggregator_type='gcn')
+            1), out_channels=128)
 
-        self.y_layer2 = SAGEConv(in_channels=128, out_channels=256,aggregator_type='gcn')
+        self.y_layer2 = SAGEConv(
+            in_channels=128, out_channels=256)
 
-        self.y_layer3 = SAGEConv(in_channels=256, out_channels=512,aggregator_type='gcn')
+        self.y_layer3 = SAGEConv(
+            in_channels=256, out_channels=512)
 
         # Linear Layers
         self.linear1 = Linear(in_features=512, out_features=1024)
