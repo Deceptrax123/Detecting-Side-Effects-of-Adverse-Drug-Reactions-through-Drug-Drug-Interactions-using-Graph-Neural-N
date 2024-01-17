@@ -125,7 +125,7 @@ def training_loop():
             })
 
             if (epoch+1) % 10 == 0:
-                weights_path = "Cheb-SSL/weights/model{epoch}.pth".format(
+                weights_path = "ChebGCN-SSL/weights/model{epoch}.pth".format(
                     epoch=epoch+1)
 
                 torch.save(model.state_dict(), weights_path)
@@ -185,10 +185,10 @@ if __name__ == '__main__':
 
     # Get Models
     r1_enc = SpectralDrugEncoder(in_features=train_set[0].x_s.size(1))
-    r1_enc.load_state_dict(torch.load("Cheb-SSL/r1_encoder.pth"))
+    r1_enc.load_state_dict(torch.load("ChebGCN-SSL/r1_encoder.pth"))
 
     r2_enc = SpectralDrugEncoder(in_features=train_set[0].x_t.size(1))
-    r2_enc.load_state_dict(torch.load("Cheb-SSL/r2_encoder.pth"))
+    r2_enc.load_state_dict(torch.load("ChebGCN-SSL/r2_encoder.pth"))
 
     model = SSLModel(r1_enc=r1_enc, r2_enc=r2_enc)
 

@@ -3,10 +3,10 @@ from Dataset.Molecule_dataset import MolecularGraphDataset
 from torch_geometric.loader import DataLoader
 from torch_geometric.graphgym import init_weights
 from Dataset.test_molecule_dataset import TestMolecularGraphDataset
-from Dataset.Molecule_dataset import MolecularGraphDataset
 from Metrics.metrics_test import classification_metrics
 import torch
-from model import ChebConvModel
+from model import SSLModel
+from encoder import SpectralDrugEncoder
 from torch.utils.data import ConcatDataset
 import torch.multiprocessing as tmp
 from torch import nn
@@ -37,7 +37,7 @@ def predict():  # batch size 1 to get single instance predictions
     over_precisions = list()
     aurocs = list()
     accs = list()
-    recs=list()
+    recs = list()
     for step, graphs in enumerate(test_loader):
         logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
 
@@ -46,7 +46,8 @@ def predict():  # batch size 1 to get single instance predictions
 
         # top_symptoms = label_map_target(topk_labels)
 
-        acc, f, p, auroc,rec = classification_metrics(predictions, graphs.y.int())
+        acc, f, p, auroc, rec = classification_metrics(
+            predictions, graphs.y.int())
 
         # precisions.append(precision)
         # labels.append(top_symptoms)
@@ -57,14 +58,14 @@ def predict():  # batch size 1 to get single instance predictions
         aurocs.append(auroc)
         recs.append(rec)
 
-    return sum(accs)/len(accs), sum(f1s)/len(f1s), sum(over_precisions)/len(over_precisions), sum(aurocs)/len(aurocs),sum(recs)/len(recs)
+    return sum(accs)/len(accs), sum(f1s)/len(f1s), sum(over_precisions)/len(over_precisions), sum(aurocs)/len(aurocs), sum(recs)/len(recs)
 
 
 if __name__ == '__main__':
 
     load_dotenv(".env")
-    test_set=MolecularGraphDataset(fold_key='fold7', root=os.getenv(
-        "graph_files")+"/fold7"+"/data/",start=45000)
+    test_set = TestMolecularGraphDataset(fold_key='val', root=os.getenv(
+        "graph_files")+"/val"+"/data/")
 
     params = {
         "batch_size": 16,
@@ -73,16 +74,20 @@ if __name__ == '__main__':
 
     test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
 
-    model = ChebConvModel(dataset=test_set)
+    # Get Models
+    r1_enc = SpectralDrugEncoder(in_features=test_set[0].x_s.size(1))
+    r2_enc = SpectralDrugEncoder(in_features=test_set[0].x_t.size(1))
+
+    model = SSLModel(r1_enc=r1_enc, r2_enc=r2_enc)
 
     model.eval()
     model.load_state_dict(torch.load(
-        "Spectral_GCN/weights/model390.pth"))
+        "ChebGCN-SSL/weights/model550.pth"))
 
     # Get the Predictions with Scores
-    acc, _, cp, auroc,recall = predict()
+    acc, _, cp, auroc, recall = predict()
 
     print("Overall Precision: ", cp)
     print("Area under ROC: ", auroc)
     print("Accuracy: ", acc)
-    print("recall: ",recall)
+    print("Recall: ", recall)

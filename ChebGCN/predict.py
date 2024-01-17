@@ -3,10 +3,10 @@ from Dataset.Molecule_dataset import MolecularGraphDataset
 from torch_geometric.loader import DataLoader
 from torch_geometric.graphgym import init_weights
 from Dataset.test_molecule_dataset import TestMolecularGraphDataset
+from Dataset.Molecule_dataset import MolecularGraphDataset
 from Metrics.metrics_test import classification_metrics
 import torch
-from model import SSLModel
-from encoder import SpectralDrugEncoder
+from model import ChebConvModel
 from torch.utils.data import ConcatDataset
 import torch.multiprocessing as tmp
 from torch import nn
@@ -64,8 +64,8 @@ def predict():  # batch size 1 to get single instance predictions
 if __name__ == '__main__':
 
     load_dotenv(".env")
-    test_set = TestMolecularGraphDataset(fold_key='val', root=os.getenv(
-        "graph_files")+"/val"+"/data/")
+    test_set = MolecularGraphDataset(fold_key='fold7', root=os.getenv(
+        "graph_files")+"/fold7"+"/data/", start=45000)
 
     params = {
         "batch_size": 16,
@@ -74,15 +74,11 @@ if __name__ == '__main__':
 
     test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
 
-    # Get Models
-    r1_enc = SpectralDrugEncoder(in_features=test_set[0].x_s.size(1))
-    r2_enc = SpectralDrugEncoder(in_features=test_set[0].x_t.size(1))
-
-    model = SSLModel(r1_enc=r1_enc, r2_enc=r2_enc)
+    model = ChebConvModel(dataset=test_set)
 
     model.eval()
     model.load_state_dict(torch.load(
-        "Cheb-SSL/weights/model550.pth"))
+        "ChebGCN/weights/model390.pth"))
 
     # Get the Predictions with Scores
     acc, _, cp, auroc, recall = predict()
@@ -90,4 +86,4 @@ if __name__ == '__main__':
     print("Overall Precision: ", cp)
     print("Area under ROC: ", auroc)
     print("Accuracy: ", acc)
-    print("Recall: ", recall)
+    print("recall: ", recall)

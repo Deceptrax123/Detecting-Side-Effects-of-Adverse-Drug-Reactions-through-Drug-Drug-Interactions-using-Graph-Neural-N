@@ -24,7 +24,7 @@ def train_epoch():
     for step, graphs in enumerate(train_loader):
 
         # weights = torch.from_numpy(compute_weights(graphs.y))
-        graphs=graphs.to(device=device)
+        graphs = graphs.to(device=device)
         logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
 
         # Train Model
@@ -63,7 +63,7 @@ def test_epoch():
 
     for step, graphs in enumerate(test_loader):
         # weights = torch.from_numpy(compute_weights(graphs.y))
-        graphs=graphs.to(device=device)
+        graphs = graphs.to(device=device)
         logits, predictions = model(graphs, graphs.x_s_batch, graphs.x_t_batch)
 
         loss_function = nn.BCEWithLogitsLoss()
@@ -126,7 +126,7 @@ def training_loop():
             })
 
             if (epoch+1) % 10 == 0:
-                weights_path = "Spectral_GCN/weights/model{epoch}.pth".format(
+                weights_path = "ChebGCN/weights/model{epoch}.pth".format(
                     epoch=epoch+1)
 
                 torch.save(model.state_dict(), weights_path)
@@ -183,7 +183,7 @@ if __name__ == '__main__':
     test_loader = DataLoader(test_set, **params, follow_batch=['x_s', 'x_t'])
 
     # The dataset is only for feature shape reference
-    device=torch.device("cuda")
+    device = torch.device("cuda")
     model = ChebConvModel(dataset=train_set).to(device=device)
 
     NUM_EPOCHS = 10000
