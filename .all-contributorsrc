@@ -8,7 +8,6 @@
   "commitConvention": "angular",
   "contributors": [
     {
-<<<<<<< HEAD
       "login": "Deceptrax123",
       "name": "Srinitish S",
       "avatar_url": "https://avatars.githubusercontent.com/u/87447180?v=4",
@@ -21,17 +20,17 @@
       ]
     },
     {
-      <<<<<<< HEAD
       "login": "Varenya007",
       "name": "Varenya",
       "avatar_url": "https://avatars.githubusercontent.com/u/90688425?v=4",
       "profile": "https://github.com/Varenya007",
       "contributions": [
         "data",
+        "code",
         "research",
         "projectManagement"
-      ]
-    },
+        ]
+    }
   ],
   "contributorsPerLine": 7,
   "skipCi": true,
