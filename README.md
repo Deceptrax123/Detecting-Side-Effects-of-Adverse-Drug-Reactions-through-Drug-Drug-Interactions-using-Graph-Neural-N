@@ -1,4 +1,14 @@
-# Modelling Drug-Drug Interaction to predict side effects
+# Modelling Drug-Target Interaction to predict side effects using Graph Neural Networks
 
-## Note to Contributors
-Refer to <a href="https://github.com/Deceptrax123/Drug-Interaction-Using-GNNs/blob/Main/contributing.md">Contributing.md</a> for information on contributing to this project.
+## About
+We create graph based neural networks of various types including self-supervised pretraining of models to predict side effects of a drug and target interaction and achieve state of the art results on various performance metrics.
+
+## Contributors
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
