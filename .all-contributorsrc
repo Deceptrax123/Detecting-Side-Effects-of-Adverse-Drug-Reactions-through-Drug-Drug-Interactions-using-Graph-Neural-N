@@ -1,0 +1,28 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "commitType": "docs",
+  "commitConvention": "angular",
+  "contributors": [
+    {
+      "login": "Varenya007",
+      "name": "Varenya",
+      "avatar_url": "https://avatars.githubusercontent.com/u/90688425?v=4",
+      "profile": "https://github.com/Varenya007",
+      "contributions": [
+        "data",
+        "research",
+        "projectManagement"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "skipCi": true,
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "projectName": "Drug-Interaction-Using-GNNs",
+  "projectOwner": "Deceptrax123"
+}
