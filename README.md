@@ -1,4 +1,4 @@
-# Modelling Drug-Target Interaction to predict side effects using Graph Neural Networks
+# Modelling Drug-Drug interaction to predict side effects using Graph Neural Networks
 
 ## About
 We create graph neural networks of various types including self-supervised pretraining of models to predict side effects of a drug and target interaction, further we achieve state of the art results on various performance metrics.
